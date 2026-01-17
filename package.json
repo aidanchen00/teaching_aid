@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@livekit/components-styles": "^1.2.0"
+  }
+}
