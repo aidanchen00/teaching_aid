@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="600" fill="#f8f9fa"/>
+  
+  <text x="400" y="40" text-anchor="middle" font-size="28" font-weight="bold" fill="#1f2937">
+    Implicit Differentiation
+  </text>
+  
+  <!-- Circle (implicit curve) -->
+  <circle cx="400" cy="300" r="150" fill="none" stroke="#3b82f6" stroke-width="3"/>
+  
+  <!-- Point on circle -->
+  <circle cx="506" cy="300" r="6" fill="#ef4444"/>
+  
+  <!-- Tangent line -->
+  <line x1="506" y1="200" x2="506" y2="400" stroke="#10b981" stroke-width="2" stroke-dasharray="5,5"/>
+  
+  <!-- Labels -->
+  <text x="400" y="80" text-anchor="middle" font-size="18" fill="#4b5563">
+    x² + y² = r²
+  </text>
+  
+  <text x="520" y="295" font-size="16" fill="#ef4444">
+    (x₀, y₀)
+  </text>
+  
+  <text x="520" y="220" font-size="16" fill="#10b981">
+    dy/dx
+  </text>
+</svg>

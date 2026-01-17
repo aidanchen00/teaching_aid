@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { VideoTrack } from '@livekit/components-react';
+import { VideoTrack, AudioTrack } from '@livekit/components-react';
 import { Participant, Track, RoomEvent } from 'livekit-client';
 
 interface ParticipantTileProps {
@@ -11,7 +11,9 @@ interface ParticipantTileProps {
 
 export function ParticipantTile({ participant, label }: ParticipantTileProps) {
   const videoPublication = participant.videoTrackPublications.values().next().value;
+  const audioPublication = participant.audioTrackPublications.values().next().value;
   const hasVideo = videoPublication && videoPublication.track;
+  const hasAudio = audioPublication && audioPublication.track;
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   // Track speaking state
@@ -34,6 +36,17 @@ export function ParticipantTile({ participant, label }: ParticipantTileProps) {
 
   return (
     <div className="relative w-full h-full bg-gray-900 rounded-lg overflow-hidden">
+      {/* Audio playback for remote participants */}
+      {hasAudio && !participant.isLocal && (
+        <AudioTrack
+          trackRef={{
+            participant,
+            source: Track.Source.Microphone,
+            publication: audioPublication,
+          }}
+        />
+      )}
+
       {/* Speaking indicator border */}
       {isSpeaking && (
         <div className="absolute inset-0 border-4 border-green-500 rounded-lg animate-pulse z-10 pointer-events-none" />

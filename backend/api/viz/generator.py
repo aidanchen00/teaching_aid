@@ -119,14 +119,14 @@ async def generate_visualization_task(
     topic: str,
     lesson_title: str,
     summary: str,
-    job_id: str
+    viz_job_id: str
 ):
     """
     Task wrapper for visualization generation.
     Updates job manager with progress and results.
     """
     try:
-        result = await generate_visualization(topic, lesson_title, summary, job_id)
+        result = await generate_visualization(topic, lesson_title, summary, viz_job_id)
         return result
     except Exception as e:
         raise Exception(f"Visualization generation failed: {str(e)}")

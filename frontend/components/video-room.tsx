@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { LiveKitRoom, useParticipants, useRoomContext } from '@livekit/components-react';
+import { LiveKitRoom, useParticipants, useRoomContext, RoomAudioRenderer } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { ParticipantTile } from './participant-tile';
 import { SimulatedAgent } from './simulated-agent';
@@ -168,6 +168,8 @@ export function VideoRoom({ token, wsUrl, onCommandReceived }: VideoRoomContentP
           }
         }}
       >
+        {/* This component automatically plays all remote audio tracks */}
+        <RoomAudioRenderer />
         <RoomContent onCommandReceived={onCommandReceived} />
       </LiveKitRoom>
     </>

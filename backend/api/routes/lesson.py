@@ -106,13 +106,14 @@ async def select_lesson(session_id: str, request: SelectLessonRequest) -> Select
     viz_job_id = job_manager.create_job()
     
     # Start visualization generation in background
+    # Note: job_id is passed separately to task_func via kwargs
     job_manager.start_job(
         viz_job_id,
         generate_visualization_task,
         topic=node_id,
         lesson_title=lesson_content["title"],
         summary=lesson_content["summary"],
-        job_id=viz_job_id
+        viz_job_id=viz_job_id  # passed as viz_job_id to avoid conflict
     )
     
     print(f"[Lesson] Selected lesson for node {node_id}, vizJobId={viz_job_id}")
