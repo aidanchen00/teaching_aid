@@ -13,15 +13,15 @@ VizType = Literal["three_spec", "manim_mp4", "image"]
 def select_viz_modality(topic: str) -> VizType:
     """
     Stubbed LLM decision: deterministically select visualization type based on topic.
-    
+
     In production, this would call an LLM to decide the best visualization type.
-    For demo, we use simple rules:
-    - Derivatives, Chain Rule, Power Rule -> three_spec (interactive)
-    - Integrals, Definite Integrals -> manim_mp4 (animated)
-    - Limits, Continuity, Implicit Differentiation -> image (diagram)
+    For demo, we use simple rules based on topic domain.
     """
     topic_lower = topic.lower().replace(" ", "_")
-    
+
+    # ==========================================================================
+    # CALCULUS
+    # ==========================================================================
     # Interactive 3D graphs for derivative-related topics
     if topic_lower in [
         "derivatives",
@@ -31,7 +31,7 @@ def select_viz_modality(topic: str) -> VizType:
         "quotient_rule"
     ]:
         return "three_spec"
-    
+
     # Animated videos for integral-related topics
     elif topic_lower in [
         "integrals",
@@ -41,7 +41,7 @@ def select_viz_modality(topic: str) -> VizType:
         "riemann_sums"
     ]:
         return "manim_mp4"
-    
+
     # Static diagrams for conceptual topics
     elif topic_lower in [
         "limits",
@@ -49,11 +49,158 @@ def select_viz_modality(topic: str) -> VizType:
         "implicit_differentiation",
         "related_rates",
         "sequences",
-        "lhopitals_rule"
+        "lhopitals_rule",
+        "fundamental_theorem"
     ]:
         return "image"
-    
-    # Default to three_spec for unknown topics
+
+    # ==========================================================================
+    # NEURAL NETWORKS / ML
+    # ==========================================================================
+    # Interactive 3D for network architecture
+    elif topic_lower in [
+        "neural_networks",
+        "perceptron",
+        "convolutional_networks",
+        "relu",
+        "sigmoid",
+        "activation_functions"
+    ]:
+        return "three_spec"
+
+    # Animated videos for optimization/learning process
+    elif topic_lower in [
+        "gradient_descent",
+        "backpropagation"
+    ]:
+        return "manim_mp4"
+
+    # Static diagrams for conceptual ML topics
+    elif topic_lower in [
+        "loss_functions",
+        "regularization"
+    ]:
+        return "image"
+
+    # ==========================================================================
+    # LINEAR ALGEBRA
+    # ==========================================================================
+    # Interactive 3D for vectors and transformations
+    elif topic_lower in [
+        "vectors",
+        "dot_product",
+        "cross_product",
+        "eigenvalues",
+        "eigenvectors"
+    ]:
+        return "three_spec"
+
+    # Animated videos for transformations
+    elif topic_lower in [
+        "linear_transformations",
+        "matrices",
+        "matrix_multiplication"
+    ]:
+        return "manim_mp4"
+
+    # Static diagrams for theory topics
+    elif topic_lower in [
+        "determinants",
+        "inverse_matrix",
+        "vector_spaces"
+    ]:
+        return "image"
+
+    # ==========================================================================
+    # PHYSICS
+    # ==========================================================================
+    # Interactive 3D for motion and waves
+    elif topic_lower in [
+        "kinematics",
+        "projectile_motion",
+        "waves",
+        "oscillations"
+    ]:
+        return "three_spec"
+
+    # Animated videos for dynamics
+    elif topic_lower in [
+        "forces",
+        "momentum",
+        "energy",
+        "mechanics"
+    ]:
+        return "manim_mp4"
+
+    # Static diagrams for laws and concepts
+    elif topic_lower in [
+        "newtons_laws",
+        "work",
+        "rotation"
+    ]:
+        return "image"
+
+    # ==========================================================================
+    # STATISTICS
+    # ==========================================================================
+    # Interactive 3D for distributions and regression
+    elif topic_lower in [
+        "normal_distribution",
+        "distributions",
+        "regression",
+        "correlation"
+    ]:
+        return "three_spec"
+
+    # Animated videos for probability concepts
+    elif topic_lower in [
+        "bayes_theorem",
+        "probability"
+    ]:
+        return "manim_mp4"
+
+    # Static diagrams for inference topics
+    elif topic_lower in [
+        "hypothesis_testing",
+        "confidence_intervals",
+        "expected_value",
+        "variance"
+    ]:
+        return "image"
+
+    # ==========================================================================
+    # DISCRETE MATH
+    # ==========================================================================
+    # Interactive 3D for graphs and trees
+    elif topic_lower in [
+        "graphs",
+        "trees"
+    ]:
+        return "three_spec"
+
+    # Animated videos for traversals and algorithms
+    elif topic_lower in [
+        "paths",
+        "cycles",
+        "connectivity",
+        "recursion"
+    ]:
+        return "manim_mp4"
+
+    # Static diagrams for set theory and logic
+    elif topic_lower in [
+        "sets",
+        "logic",
+        "combinatorics",
+        "permutations",
+        "combinations",
+        "proofs"
+    ]:
+        return "image"
+
+    # ==========================================================================
+    # DEFAULT
+    # ==========================================================================
     else:
         return "three_spec"
 

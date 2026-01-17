@@ -23,7 +23,7 @@ SYSTEM_PROMPT = """You are a natural language understanding system for a learnin
 Your job is to map user speech transcripts into strict command JSON objects.
 
 Available commands:
-1. select_node_by_label - Navigate to a specific topic
+1. select_node_by_label - Navigate to a specific topic within the current domain
    Format: {{"action": "select_node_by_label", "label": "<exact_node_label>"}}
 
 2. back_to_graph - Return to the main graph view
@@ -35,18 +35,31 @@ Available commands:
 4. end_lesson - End the current lesson
    Format: {{"action": "end_lesson"}}
 
-5. clarify - Ask for clarification (you will NOT publish this)
+5. switch_domain - Switch to a different subject area
+   Format: {{"action": "switch_domain", "domain": "<domain_key>"}}
+   Available domains:
+   - calculus: Calculus (derivatives, integrals, limits)
+   - neural_networks: Neural Networks & ML (perceptrons, backpropagation, activation functions)
+   - linear_algebra: Linear Algebra (vectors, matrices, eigenvalues)
+   - physics: Physics (mechanics, forces, waves, energy)
+   - statistics: Statistics (probability, distributions, hypothesis testing)
+   - discrete_math: Discrete Math (graphs, trees, sets, logic)
+
+6. clarify - Ask for clarification (you will NOT publish this)
    Format: {{"action": "clarify", "question": "What topic did you mean?"}}
 
+Current domain: {current_domain}
 Current available topics (node labels):
 {node_labels}
 
 Rules:
 - ONLY output JSON, nothing else
 - Match node labels exactly from the provided list
-- If the user mentions a topic, use select_node_by_label
+- If the user mentions a topic IN the current domain, use select_node_by_label
+- If the user wants to change subjects/domains entirely, use switch_domain
 - If you can't find an exact match or are unsure, use clarify
-- Keywords: "go to", "show me", "learn about" → select_node_by_label
+- Keywords: "go to", "show me", "learn about" + topic in current domain → select_node_by_label
+- Keywords: "switch to", "change to", "I want to learn", "show me" + domain name → switch_domain
 - Keywords: "back", "return", "go back" → back_to_graph
 - Keywords: "start", "begin", "let's learn" → start_lesson
 - Keywords: "stop", "end", "finish" → end_lesson
@@ -54,6 +67,15 @@ Rules:
 Examples:
 User: "Show me derivatives"
 Output: {{"action": "select_node_by_label", "label": "Derivatives"}}
+
+User: "I want to learn about neural networks"
+Output: {{"action": "switch_domain", "domain": "neural_networks"}}
+
+User: "Switch to physics"
+Output: {{"action": "switch_domain", "domain": "physics"}}
+
+User: "Show me the linear algebra topics"
+Output: {{"action": "switch_domain", "domain": "linear_algebra"}}
 
 User: "Go back to the graph"
 Output: {{"action": "back_to_graph"}}
@@ -65,29 +87,30 @@ User: "What is calculus?"
 Output: {{"action": "clarify", "question": "Did you want to learn about a specific topic? Available topics are: Derivatives, Integrals, Limits"}}
 """
 
-async def map_transcript_to_command(transcript: str, node_labels: List[str]) -> Dict:
+async def map_transcript_to_command(transcript: str, node_labels: List[str], current_domain: str = "calculus") -> Dict:
     """
     Map user transcript to command JSON using Gemini.
 
     Args:
         transcript: User speech transcript
         node_labels: List of available node labels from graph
+        current_domain: Current domain (calculus, neural_networks, etc.)
 
     Returns:
-        Command dict with "action" and optional "label"
+        Command dict with "action" and optional "label" or "domain"
 
     Raises:
         Exception if LLM fails
     """
 
-    # Format prompt with current node labels
+    # Format prompt with current node labels and domain
     labels_str = ", ".join(node_labels)
-    prompt = SYSTEM_PROMPT.format(node_labels=labels_str)
+    prompt = SYSTEM_PROMPT.format(node_labels=labels_str, current_domain=current_domain)
 
     # Construct request
     full_prompt = f"{prompt}\n\nUser transcript: \"{transcript}\"\n\nOutput JSON:"
 
-    print(f"[NLU] Processing transcript: '{transcript}'")
+    print(f"[NLU] Processing transcript: '{transcript}' (domain: {current_domain})")
     print(f"[NLU] Available labels: {labels_str}")
 
     try:
