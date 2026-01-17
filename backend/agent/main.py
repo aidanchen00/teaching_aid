@@ -66,7 +66,7 @@ async def entrypoint(ctx: JobContext):
     @session.on("speech_created")
     def on_speech(event):
         print(f"\n{'='*50}")
-        print(f"AGENT RESPONDING: {event.content}")
+        print(f"AGENT SPEAKING (source: {event.source})")
         print(f"{'='*50}\n")
 
     # Start the session
