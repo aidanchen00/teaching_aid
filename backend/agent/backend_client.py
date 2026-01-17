@@ -2,7 +2,11 @@ import os
 import httpx
 from typing import Dict, List
 
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+
+def _get_backend_url() -> str:
+    """Get backend URL at runtime to ensure dotenv has been loaded."""
+    return os.getenv("BACKEND_URL", "http://localhost:8000")
+
 
 async def get_graph(session_id: str) -> Dict:
     """
@@ -20,8 +24,8 @@ async def get_graph(session_id: str) -> Dict:
     Raises:
         Exception if backend request fails
     """
-
-    url = f"{BACKEND_URL}/session/{session_id}/graph"
+    backend_url = _get_backend_url()
+    url = f"{backend_url}/session/{session_id}/graph"
 
     async with httpx.AsyncClient(timeout=10.0) as client:
         try:

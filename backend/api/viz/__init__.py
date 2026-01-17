@@ -1,0 +1,2 @@
+"""Visualization generation module."""
+

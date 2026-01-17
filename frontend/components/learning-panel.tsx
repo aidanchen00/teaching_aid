@@ -240,9 +240,10 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
       )}
       
       {/* Lesson Overlay */}
-      {mode === 'VIZ' && selectedNode && (
+      {mode === 'VIZ' && selectedNode && sessionId && (
         <LessonOverlay 
-          node={selectedNode} 
+          node={selectedNode}
+          sessionId={sessionId}
           onBackToGraph={handleBackToGraph}
         />
       )}

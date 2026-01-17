@@ -36,16 +36,39 @@ export function KnowledgeGraphPanel({
   onNodeClick,
   isBlurred = false 
 }: KnowledgeGraphPanelProps) {
-  const fgRef = useRef<any>();
+  const fgRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [is3DReady, setIs3DReady] = useState(false);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+  // Track container dimensions
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const { clientWidth, clientHeight } = containerRef.current;
+        setDimensions({ width: clientWidth, height: clientHeight });
+      }
+    };
+
+    updateDimensions();
+    
+    // Use ResizeObserver for accurate container size tracking
+    const resizeObserver = new ResizeObserver(updateDimensions);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    return () => resizeObserver.disconnect();
+  }, []);
 
   const recenterCamera = () => {
     if (fgRef.current) {
       try {
-        // Position camera slightly to the left and above for better view
+        console.log('[Graph] Recentering camera to origin');
+        // Position camera directly in front, looking at origin
         fgRef.current.cameraPosition(
-          { x: -50, y: 50, z: 300 },  // Camera position
-          { x: 0, y: 0, z: 0 },       // Look at origin
+          { x: 0, y: 0, z: 250 },     // Camera straight ahead
+          { x: 0, y: 0, z: 0 },       // Look at origin (center)
           1500                         // Duration
         );
       } catch (e) {
@@ -75,22 +98,29 @@ export function KnowledgeGraphPanel({
   useEffect(() => {
     if (fgRef.current && is3DReady) {
       console.log('[Graph] Initializing camera position');
-      // Set initial camera position immediately
+      // Set initial camera position immediately - straight ahead
       try {
         fgRef.current.cameraPosition(
-          { x: -50, y: 50, z: 300 },
-          { x: 0, y: 0, z: 0 },
-          0 // No animation for initial setup
+          { x: 0, y: 0, z: 250 },     // Straight ahead
+          { x: 0, y: 0, z: 0 },       // Look at origin
+          0                            // Instant
         );
+        
+        // Also zoom to fit
+        setTimeout(() => {
+          if (fgRef.current) {
+            fgRef.current.zoomToFit(1000, 50);
+          }
+        }, 500);
       } catch (e) {
         console.error('[Graph] Error setting initial camera:', e);
       }
       
-      // Recenter after stabilization
+      // Recenter after physics settle
       const timer = setTimeout(() => {
         console.log('[Graph] Recentering after stabilization');
         recenterCamera();
-      }, 2000);
+      }, 2500);
       
       return () => clearTimeout(timer);
     }
@@ -117,14 +147,14 @@ export function KnowledgeGraphPanel({
   }, []);
 
   return (
-    <Card className={`h-full w-full overflow-hidden ${isBlurred ? 'blur-sm opacity-50' : ''}`}>
-      <div className="h-full w-full bg-slate-950 relative">
-        {is3DReady && (
+    <div className={`h-full w-full ${isBlurred ? 'blur-sm opacity-50' : ''}`}>
+      <div ref={containerRef} className="h-full w-full bg-slate-950 relative">
+        {is3DReady && dimensions.width > 0 && dimensions.height > 0 && (
           <ForceGraph3D
             ref={fgRef}
             graphData={graphData}
-            width={undefined}
-            height={undefined}
+            width={dimensions.width}
+            height={dimensions.height}
             nodeLabel="label"
             nodeAutoColorBy="isCenter"
             nodeVal={(node: any) => node.isCenter ? 15 : 8}
@@ -161,11 +191,6 @@ export function KnowledgeGraphPanel({
               }, 200);
             }}
             controlType="orbit"
-            nodeThreeObject={(node: any) => {
-              // Use default rendering for simplicity
-              return undefined;
-            }}
-            nodeThreeObjectExtend={true}
           />
         )}
         
@@ -177,7 +202,7 @@ export function KnowledgeGraphPanel({
         </div>
         
         {/* Recenter button */}
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4 z-10">
           <button
             onClick={recenterCamera}
             className="bg-slate-900/80 hover:bg-slate-800 backdrop-blur-sm border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 hover:text-white transition-colors"
@@ -187,7 +212,7 @@ export function KnowledgeGraphPanel({
           </button>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 

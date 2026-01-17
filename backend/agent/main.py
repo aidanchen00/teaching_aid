@@ -1,168 +1,149 @@
 import asyncio
 import os
-import json
-import numpy as np
+import io
+import wave
+import httpx
+import ssl
+import certifi
 from dotenv import load_dotenv
-from livekit import rtc
-from livekit.agents import JobContext, WorkerOptions, cli
 
-from vad import VoiceActivityDetector
-from stt_elevenlabs import transcribe_utterance
-from backend_client import get_graph
-from nlu import map_transcript_to_command
-from commands import validate_command
-
+# Load environment variables
 load_dotenv()
 
-SESSION_ID = "learning-room"  # Constant session ID
+# Fix SSL certificate verification on macOS Python 3.13
+os.environ['SSL_CERT_FILE'] = certifi.where()
+os.environ['REQUESTS_CA_BUNDLE'] = certifi.where()
 
+from livekit import rtc
+from livekit.agents import (
+    AgentServer,
+    AutoSubscribe,
+    JobContext,
+    cli,
+)
+
+# Simple STT function - just ElevenLabs API
+async def transcribe_audio(audio_bytes: bytes, sample_rate: int) -> str:
+    """Send audio to ElevenLabs and get text back"""
+    
+    api_key = os.getenv("ELEVENLABS_API_KEY")
+    if not api_key:
+        print("❌ ELEVENLABS_API_KEY not set!")
+        return ""
+    
+    # Convert raw PCM to WAV
+    wav_buffer = io.BytesIO()
+    with wave.open(wav_buffer, 'wb') as wav_file:
+        wav_file.setnchannels(1)  # Mono
+        wav_file.setsampwidth(2)  # 16-bit
+        wav_file.setframerate(sample_rate)
+        wav_file.writeframes(audio_bytes)
+    wav_buffer.seek(0)
+    
+    # Call ElevenLabs
+    url = "https://api.elevenlabs.io/v1/speech-to-text/transcriptions"
+    headers = {"xi-api-key": api_key}
+    files = {"file": ("audio.wav", wav_buffer, "audio/wav")}
+    data = {"model_id": "scribe_v2_realtime"}
+    
+    print(f"📤 Sending {len(audio_bytes)} bytes to ElevenLabs...")
+    
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            response = await client.post(url, headers=headers, files=files, data=data)
+            response.raise_for_status()
+            result = response.json()
+            text = result.get("text", "")
+            print(f"✅ STT Result: '{text}'")
+            return text
+        except Exception as e:
+            print(f"❌ STT Error: {e}")
+            return ""
+
+# Create agent server
+server = AgentServer()
+
+@server.rtc_session()
 async def entrypoint(ctx: JobContext):
-    """Agent entry point - joins room and processes audio"""
-
+    """Simple agent: collect audio and transcribe"""
+    
+    print(f"🤖 Agent joining room: {ctx.room.name}")
+    
     # Connect to room
-    await ctx.connect()
+    await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
     room = ctx.room
-
-    # Publish agent's own tracks (silent audio + placeholder video)
-    # This makes the agent appear in the frontend
-    audio_source = rtc.AudioSource(16000, 1)
-    video_source = rtc.VideoSource(640, 480)
-
-    audio_track = rtc.LocalAudioTrack.create_audio_track("agent_audio", audio_source)
-    video_track = rtc.LocalVideoTrack.create_video_track("agent_video", video_source)
-
-    await room.local_participant.publish_track(audio_track, rtc.TrackPublishOptions())
-    await room.local_participant.publish_track(video_track, rtc.TrackPublishOptions())
-
-    print(f"[Agent] Connected to room: {room.name} as '{room.local_participant.identity}'")
-
-    # Initialize VAD
-    vad = VoiceActivityDetector(
-        sample_rate=16000,
-        frame_duration_ms=30,
-        silence_duration_ms=1000,
-        max_utterance_sec=12.0
-    )
-
-    # Wait for user to join and subscribe to their audio
-    async def wait_for_user():
-        """Wait for a user participant and subscribe to their audio"""
+    
+    print(f"✅ Connected as '{room.local_participant.identity}'")
+    
+    # Buffer to collect audio chunks
+    audio_buffer = []
+    buffer_duration = 3.0  # Process every 3 seconds
+    sample_rate = 16000
+    
+    async def process_audio_track(track: rtc.Track, participant: rtc.RemoteParticipant):
+        """Collect audio and send to STT every few seconds"""
+        nonlocal audio_buffer, sample_rate
+        
+        print(f"🎤 Listening to {participant.identity}")
+        
+        audio_stream = rtc.AudioStream(track)
+        frames_collected = 0
+        max_frames = int(buffer_duration * 100)  # ~100 frames per second at 10ms chunks
+        
+        async for frame_event in audio_stream:
+            frame = frame_event.frame
+            
+            # Update sample rate from first frame
+            if frames_collected == 0:
+                sample_rate = frame.sample_rate
+                print(f"📊 Sample rate: {sample_rate} Hz")
+            
+            # Collect audio data
+            audio_buffer.append(bytes(frame.data))
+            frames_collected += 1
+            
+            # Process every N frames
+            if frames_collected >= max_frames:
+                # Combine all chunks
+                combined_audio = b''.join(audio_buffer)
+                
+                # Send to STT (don't block the audio stream)
+                asyncio.create_task(transcribe_audio(combined_audio, sample_rate))
+                
+                # Reset buffer
+                audio_buffer = []
+                frames_collected = 0
+    
+    def on_track_subscribed(
+        track: rtc.Track,
+        publication: rtc.RemoteTrackPublication,
+        participant: rtc.RemoteParticipant,
+    ):
+        """Start processing when audio track arrives"""
+        if track.kind == rtc.TrackKind.KIND_AUDIO:
+            if "agent" not in participant.identity.lower():
+                print(f"👂 Subscribed to {participant.identity}'s audio")
+                asyncio.create_task(process_audio_track(track, participant))
+    
+    # Listen for tracks
+    room.on("track_subscribed", on_track_subscribed)
+    
+    # Check for existing tracks
+    for participant in room.remote_participants.values():
+        if "agent" in participant.identity.lower():
+            continue
+        for pub in participant.track_publications.values():
+            if pub.track and pub.kind == rtc.TrackKind.KIND_AUDIO:
+                on_track_subscribed(pub.track, pub, participant)
+    
+    print("🎧 Agent ready! Speak and I'll transcribe...")
+    
+    # Keep running
+    try:
         while True:
-            for participant in room.remote_participants.values():
-                if "agent" not in participant.identity.lower():
-                    print(f"[Agent] Found user participant: {participant.identity}")
-
-                    # Subscribe to user's audio track
-                    for publication in participant.track_publications.values():
-                        if publication.kind == rtc.TrackKind.KIND_AUDIO and publication.track:
-                            print(f"[Agent] Subscribing to {participant.identity}'s audio")
-                            return publication.track
-
-                    # If track not yet available, wait for it
-                    print(f"[Agent] Waiting for {participant.identity}'s audio track...")
-
-            await asyncio.sleep(0.5)
-
-    # Get user's audio track
-    user_audio_track = await wait_for_user()
-
-    # Create audio stream from track
-    audio_stream = rtc.AudioStream(user_audio_track)
-
-    print(f"[Agent] Processing audio stream...")
-
-    # Process audio frames
-    async for frame in audio_stream:
-        # Convert frame data to numpy array
-        audio_data = np.frombuffer(frame.data, dtype=np.int16)
-
-        utterance_complete, audio_buffer = vad.process_frame(audio_data)
-
-        if utterance_complete and audio_buffer:
-            # Process utterance in background (don't block audio stream)
-            asyncio.create_task(process_utterance(room, audio_buffer, vad.sample_rate))
-
-
-async def process_utterance(room: rtc.Room, audio_buffer: bytes, sample_rate: int):
-    """Process a complete utterance: STT → Backend → NLU → Publish"""
-
-    print(f"[Agent] Processing utterance ({len(audio_buffer)} bytes)")
-
-    # 1. STT with ElevenLabs
-    try:
-        transcript = await transcribe_utterance(audio_buffer, sample_rate)
-        print(f"[Agent] Transcript: '{transcript}'")
-
-        if not transcript or transcript.strip() == "":
-            print("[Agent] Empty transcript, skipping")
-            return
-
-    except Exception as e:
-        print(f"[Agent] STT failed: {e}")
-        await send_error_command(room, "Speech recognition failed")
-        return
-
-    # 2. Query backend for graph
-    try:
-        graph_data = await get_graph(SESSION_ID)
-        node_labels = [node["label"] for node in graph_data["nodes"]]
-        print(f"[Agent] Graph nodes: {node_labels}")
-    except Exception as e:
-        print(f"[Agent] Backend query failed: {e}")
-        await send_error_command(room, "Failed to fetch graph data")
-        return
-
-    # 3. NLU with Gemini
-    try:
-        command = await map_transcript_to_command(transcript, node_labels)
-        print(f"[Agent] Command: {command}")
-
-        if command.get("action") == "clarify":
-            print(f"[Agent] Clarification needed: {command.get('question')}")
-            return  # Don't publish clarify commands (Step 3 requirement)
-
-        # Validate command
-        if not validate_command(command):
-            print(f"[Agent] Invalid command format: {command}")
-            return
-
-    except Exception as e:
-        print(f"[Agent] NLU failed: {e}")
-        await send_error_command(room, "Failed to understand command")
-        return
-
-    # 4. Publish command via data channel
-    await send_command(room, command)
-
-
-async def send_command(room: rtc.Room, command: dict):
-    """Publish command to frontend via data channel"""
-    message = {
-        "type": "command",
-        "payload": command
-    }
-
-    data = json.dumps(message).encode("utf-8")
-
-    await room.local_participant.publish_data(
-        data,
-        reliable=True
-    )
-
-    print(f"[Agent] Published command: {command}")
-
-
-async def send_error_command(room: rtc.Room, error_message: str):
-    """Send error command to frontend"""
-    await send_command(room, {
-        "action": "error",
-        "message": error_message
-    })
-
+            await asyncio.sleep(1)
+    except asyncio.CancelledError:
+        print("👋 Agent shutting down")
 
 if __name__ == "__main__":
-    cli.run_app(
-        WorkerOptions(
-            entrypoint_fnc=entrypoint,
-        )
-    )
+    cli.run_app(server)

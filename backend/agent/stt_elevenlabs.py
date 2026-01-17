@@ -4,8 +4,16 @@ import wave
 import httpx
 from typing import Optional
 
-ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 ELEVENLABS_STT_MODEL = "scribe_v2_realtime"
+
+
+def _get_api_key() -> str:
+    """Get API key at runtime to ensure dotenv has been loaded."""
+    api_key = os.getenv("ELEVENLABS_API_KEY")
+    if not api_key:
+        raise Exception("ELEVENLABS_API_KEY environment variable is not set")
+    return api_key
+
 
 async def transcribe_utterance(audio_bytes: bytes, sample_rate: int) -> str:
     """
@@ -21,6 +29,8 @@ async def transcribe_utterance(audio_bytes: bytes, sample_rate: int) -> str:
     Raises:
         Exception if STT fails
     """
+    # Get API key at runtime
+    api_key = _get_api_key()
 
     # Convert PCM to WAV format
     wav_buffer = _pcm_to_wav(audio_bytes, sample_rate)
@@ -29,7 +39,7 @@ async def transcribe_utterance(audio_bytes: bytes, sample_rate: int) -> str:
     url = "https://api.elevenlabs.io/v1/speech-to-text/transcriptions"
 
     headers = {
-        "xi-api-key": ELEVENLABS_API_KEY
+        "xi-api-key": api_key
     }
 
     files = {
@@ -43,25 +53,64 @@ async def transcribe_utterance(audio_bytes: bytes, sample_rate: int) -> str:
     }
 
     print(f"[STT] Sending {len(audio_bytes)} bytes to ElevenLabs (sample_rate={sample_rate})")
+    print(f"[STT] API Key present: {bool(api_key)}")
+    print(f"[STT] API Key length: {len(api_key)}")
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         try:
             response = await client.post(url, headers=headers, files=files, data=data)
+            print(f"[STT] Response status: {response.status_code}")
             response.raise_for_status()
 
             result = response.json()
             transcript = result.get("text", "")
 
+            if not transcript or transcript.strip() == "":
+                print("[STT] Warning: Empty transcript returned")
+                return ""
+
             print(f"[STT] Success: '{transcript}'")
             return transcript
 
         except httpx.HTTPStatusError as e:
-            print(f"[STT] HTTP error: {e.response.status_code} - {e.response.text}")
-            raise Exception(f"ElevenLabs STT failed: {e.response.status_code}")
+            # Try to get error details from response
+            try:
+                if hasattr(e.response, 'text') and e.response.text:
+                    error_text = e.response.text
+                    # Try to parse as JSON for better error message
+                    try:
+                        error_json = e.response.json()
+                        if isinstance(error_json, dict):
+                            error_msg = error_json.get('detail', {}).get('message', error_json.get('message', error_text))
+                        else:
+                            error_msg = error_text
+                    except:
+                        error_msg = error_text
+                else:
+                    error_msg = str(e)
+            except:
+                error_msg = str(e)
+            
+            print(f"[STT] HTTP error: {e.response.status_code} - {error_msg}")
+            
+            if e.response.status_code == 401:
+                raise Exception("ElevenLabs API key is invalid or expired. Please check your ELEVENLABS_API_KEY environment variable.")
+            elif e.response.status_code == 429:
+                raise Exception("ElevenLabs API rate limit exceeded. Please try again later.")
+            elif e.response.status_code == 400:
+                raise Exception(f"ElevenLabs API bad request: {error_msg}")
+            elif e.response.status_code == 413:
+                raise Exception("Audio file too large for ElevenLabs API")
+            else:
+                raise Exception(f"ElevenLabs STT failed (HTTP {e.response.status_code}): {error_msg}")
+
+        except httpx.TimeoutException:
+            print("[STT] Request timeout")
+            raise Exception("ElevenLabs STT request timed out")
 
         except Exception as e:
             print(f"[STT] Unexpected error: {e}")
-            raise
+            raise Exception(f"STT error: {str(e)}")
 
 
 def _pcm_to_wav(pcm_data: bytes, sample_rate: int) -> io.BytesIO:

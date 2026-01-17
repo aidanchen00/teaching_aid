@@ -1,14 +1,22 @@
 import os
 import json
 import google.generativeai as genai
-from typing import Dict, List
+from typing import Dict, List, Optional
 
-# Configure Gemini
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-genai.configure(api_key=GOOGLE_API_KEY)
+# Lazy initialization to ensure dotenv has been loaded
+_model: Optional[genai.GenerativeModel] = None
 
-# Use Gemini 1.5 Flash for fast responses
-model = genai.GenerativeModel('gemini-1.5-flash')
+
+def _get_model() -> genai.GenerativeModel:
+    """Get or initialize the Gemini model at runtime."""
+    global _model
+    if _model is None:
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise Exception("GOOGLE_API_KEY environment variable is not set")
+        genai.configure(api_key=api_key)
+        _model = genai.GenerativeModel('gemini-1.5-flash')
+    return _model
 
 SYSTEM_PROMPT = """You are a natural language understanding system for a learning application.
 
@@ -83,7 +91,8 @@ async def map_transcript_to_command(transcript: str, node_labels: List[str]) -> 
     print(f"[NLU] Available labels: {labels_str}")
 
     try:
-        # Call Gemini
+        # Call Gemini (lazy initialization)
+        model = _get_model()
         response = model.generate_content(full_prompt)
         output = response.text.strip()
 

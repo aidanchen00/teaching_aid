@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.routes import session
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+
+from api.routes import session, lesson, viz
 
 app = FastAPI(
     title="Learning App Backend",
@@ -16,8 +19,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount static files for serving generated visualizations
+STATIC_DIR = Path(__file__).parent.parent / "static"
+STATIC_DIR.mkdir(exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
 # Include routers
 app.include_router(session.router, prefix="/session", tags=["Session"])
+app.include_router(lesson.router, tags=["Lesson"])
+app.include_router(viz.router, tags=["Visualization"])
 
 @app.get("/")
 async def root():
@@ -26,3 +36,8 @@ async def root():
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+    
