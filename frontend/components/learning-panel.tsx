@@ -11,11 +11,12 @@ type Mode = 'GRAPH' | 'VIZ';
 
 interface LearningPanelProps {
   lastCommand?: AgentCommand | null;
+  sendCommand?: ((action: string, payload?: any) => void) | null;
 }
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
-export function LearningPanel({ lastCommand }: LearningPanelProps) {
+export function LearningPanel({ lastCommand, sendCommand }: LearningPanelProps) {
   const [mode, setMode] = useState<Mode>('GRAPH');
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [graph, setGraph] = useState<GraphData | null>(null);
@@ -131,11 +132,22 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
           ...prevGraph,
           centerId: nodeId
         } : null);
+
+        // Notify agent about node selection for auto-teaching
+        if (sendCommand) {
+          console.log('[LearningPanel] Sending node_selected to agent:', node);
+          sendCommand('node_selected', {
+            nodeId: node.id,
+            label: node.label,
+            vizType: node.vizType,
+            description: node.description
+          });
+        }
       }, 0);
     } else {
       console.log('[LearningPanel] Node not found in graph.nodes:', currentGraph.nodes);
     }
-  }, [sessionId]); // Remove graph from dependencies since we use graphRef
+  }, [sessionId, sendCommand]); // Add sendCommand to dependencies
 
   const handleBackToGraph = () => {
     console.log('[LearningPanel] Back to graph');
@@ -251,12 +263,7 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
     );
   }
 
-  // Debug: log render state
-  console.log('[LearningPanel] Render state:', { mode, selectedNode: selectedNode?.id, sessionId, graphNodes: graph?.nodes?.length });
-
-  // Check why LessonOverlay might not render
   const shouldShowOverlay = mode === 'VIZ' && selectedNode && sessionId;
-  console.log('[LearningPanel] Should show overlay:', shouldShowOverlay, { mode, hasSelectedNode: !!selectedNode, hasSessionId: !!sessionId });
 
   return (
     <div className="w-full h-full relative">
@@ -267,10 +274,10 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
         </div>
       )}
 
-      {/* Knowledge Graph - key forces remount when session or graph structure changes */}
+      {/* Knowledge Graph */}
       {graph && (
         <KnowledgeGraphPanel
-          key={`${sessionId}-${graph.centerId}`}
+          key={sessionId}
           graph={graph}
           onNodeClick={handleNodeClick}
           isBlurred={mode === 'VIZ'}

@@ -8,6 +8,8 @@ export interface GraphNode {
   id: string;
   label: string;
   vizType?: VizType;
+  description?: string;  // For OpenNote - detailed topic description
+  summary?: string;      // For agent - brief teaching context
 }
 
 export interface GraphLink {

@@ -79,9 +79,6 @@ export function KnowledgeGraphPanel({
     return '#64748b'; // slate for default
   };
 
-  // Generate a key that changes when graph structure changes (forces remount)
-  const graphKey = graph.nodes.map(n => n.id).sort().join(',');
-
   // Format data for react-force-graph-3d
   // Give initial positions spread out, but let them float freely
   const graphData = {
@@ -165,7 +162,6 @@ export function KnowledgeGraphPanel({
       <div ref={containerRef} className="h-full w-full bg-slate-950 relative">
         {is3DReady && dimensions.width > 0 && dimensions.height > 0 && (
           <ForceGraph3D
-            key={graphKey}
             ref={fgRef}
             graphData={graphData}
             width={dimensions.width}

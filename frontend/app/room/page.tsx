@@ -16,6 +16,7 @@ export default function RoomPage() {
   const [error, setError] = useState<string | null>(null);
   const [lastCommand, setLastCommand] = useState<AgentCommand | null>(null);
   const [curriculumContext, setCurriculumContext] = useState<any>(null);
+  const [sendCommand, setSendCommand] = useState<((action: string, payload?: any) => void) | null>(null);
 
   const wsUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || '';
 
@@ -47,6 +48,12 @@ export default function RoomPage() {
   const handleCommandReceived = useCallback((command: AgentCommand) => {
     console.log('[RoomPage] Command received:', command);
     setLastCommand(command);
+  }, []);
+
+  // Callback when sendCommand is ready from VideoRoom
+  const handleSendCommandReady = useCallback((sendFn: (action: string, payload?: any) => void) => {
+    console.log('[RoomPage] sendCommand is ready');
+    setSendCommand(() => sendFn);
   }, []);
 
   const handleJoinRoom = async (session?: string) => {
@@ -159,17 +166,19 @@ export default function RoomPage() {
             </div>
           </div>
         ) : (
-          <VideoRoom 
-            token={token} 
+          <VideoRoom
+            token={token}
             wsUrl={wsUrl}
+            sessionId={sessionId || undefined}
             onCommandReceived={handleCommandReceived}
+            onSendCommandReady={handleSendCommandReady}
           />
         )}
       </div>
 
       {/* Right Panel - Learning Panel */}
       <div className="w-1/2 h-full">
-        <LearningPanel lastCommand={lastCommand} />
+        <LearningPanel lastCommand={lastCommand} sendCommand={sendCommand} />
       </div>
     </div>
   );
