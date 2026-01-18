@@ -15,7 +15,7 @@ def _get_model() -> genai.GenerativeModel:
         if not api_key:
             raise Exception("GOOGLE_API_KEY environment variable is not set")
         genai.configure(api_key=api_key)
-        _model = genai.GenerativeModel('gemini-2.0-flash')
+        _model = genai.GenerativeModel('gemini-2.5-flash')
     return _model
 
 SYSTEM_PROMPT = """You are a natural language understanding system for an educational learning application with an interactive knowledge graph.

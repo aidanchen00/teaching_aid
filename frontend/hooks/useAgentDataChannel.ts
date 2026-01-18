@@ -15,11 +15,15 @@ export interface AgentCommand {
     message?: string;
     data?: unknown;
     sessionId?: string;  // Session ID from agent for syncing
+    nodeId?: string;     // Node ID for node selection events
+    vizType?: string;    // Visualization type
+    description?: string; // Node description for auto-teaching
     graph?: {
       centerId: string;
       nodes: Array<{ id: string; label: string; vizType?: string }>;
       links: Array<{ source: string; target: string }>;
     };
+    [key: string]: unknown;  // Allow additional fields
   };
 }
 
@@ -85,21 +89,24 @@ export function useAgentDataChannel() {
   /**
    * Send a command to the agent
    *
-   * @param action - The action type (e.g., "user_clicked", "navigate")
-   * @param payload - Additional payload data
+   * @param action - The action type (e.g., "user_clicked", "navigate", "node_selected")
+   * @param payload - Additional payload data (nodeId, label, vizType, description, etc.)
    */
-  const sendCommand = (action: string, payload?: { label?: string; data?: unknown }) => {
+  const sendCommand = (action: string, payload?: Record<string, unknown>) => {
     if (!room) {
       console.error('[Data Channel] Cannot send - room not connected');
       return;
     }
 
-    // Create clean payload - only include serializable data
-    const cleanPayload: any = { action };
-    if (payload?.label) cleanPayload.label = payload.label;
-    if (payload?.data && typeof payload.data !== 'object') {
-      // Only include primitive data types
-      cleanPayload.data = payload.data;
+    // Create clean payload with action and all serializable fields from payload
+    const cleanPayload: AgentCommand['payload'] = { action };
+    if (payload) {
+      // Copy only serializable primitive/string values from payload
+      for (const [key, value] of Object.entries(payload)) {
+        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+          cleanPayload[key] = value;
+        }
+      }
     }
 
     const message: AgentCommand = {

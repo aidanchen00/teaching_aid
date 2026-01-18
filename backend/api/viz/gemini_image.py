@@ -147,7 +147,7 @@ async def generate_gemini_svg(
         return generate_svg_diagram(topic, lesson_title, summary)
 
     try:
-        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         prompt = get_prompt_for_viz_type(viz_type, lesson_title, summary)
 
         response = model.generate_content(prompt)

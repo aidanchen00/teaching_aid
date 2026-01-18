@@ -1,16 +1,19 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Dict, List, Optional, Any
+from datetime import datetime
 from api.session_store import (
     create_session,
     get_session,
     update_session_center,
     find_node_by_label,
     set_curriculum_nodes,
+    update_current_node,
+    get_node_by_id,
     set_opennote_materials,
     get_opennote_materials,
 )
-from api.curriculum_generator import generate_curriculum
+from api.curriculum_generator import generate_curriculum, get_curriculum_metadata
 from api.opennote_client import generate_opennote_materials
 
 router = APIRouter()
@@ -255,4 +258,108 @@ async def get_opennote(session_id: str) -> OpenNoteMaterialsResponse:
         materials=materials,
         breakoutRoomId=session.breakout_room_id,
         metadata=session.curriculum_context
+    )
+
+
+# ============ Curriculum Endpoints ============
+
+class CurriculumResponse(BaseModel):
+    """Response for curriculum data (for OpenNote integration)."""
+    metadata: Dict[str, Any]
+    nodes: List[GraphNodeResponse]
+    links: List[Dict[str, str]]
+
+
+class NodeSelectResponse(BaseModel):
+    """Response for node selection."""
+    node: GraphNodeResponse
+    message: str
+
+
+@router.get("/{session_id}/curriculum")
+async def get_curriculum(session_id: str) -> CurriculumResponse:
+    """
+    Get full curriculum data for OpenNote integration.
+
+    Args:
+        session_id: Session identifier
+
+    Returns:
+        Curriculum with metadata, nodes (with descriptions), and links
+    """
+    session = get_session(session_id)
+
+    if not session:
+        raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+
+    # Use curriculum_nodes if available, otherwise fall back to regular nodes
+    nodes_to_use = session.curriculum_nodes if session.curriculum_nodes else session.nodes
+
+    context = session.curriculum_context or {}
+
+    curriculum_data = {
+        "metadata": {
+            "university": context.get("school", "Unknown"),
+            "course": context.get("title", "Unknown Course"),
+            "generatedAt": datetime.utcnow().isoformat(),
+            "topicCount": len(nodes_to_use)
+        },
+        "nodes": [
+            GraphNodeResponse(
+                id=node.id,
+                label=node.label,
+                vizType=node.vizType,
+                description=node.description,
+                summary=node.summary,
+                expanded=node.expanded,
+                depth=node.depth,
+                parent_id=node.parent_id
+            )
+            for node in nodes_to_use
+        ],
+        "links": [{"source": link.source, "target": link.target} for link in session.links]
+    }
+
+    print(f"[API] GET /session/{session_id}/curriculum -> {len(nodes_to_use)} nodes")
+
+    return CurriculumResponse(**curriculum_data)
+
+
+@router.post("/{session_id}/node/select")
+async def select_node_for_teaching(session_id: str, request: SelectNodeRequest) -> NodeSelectResponse:
+    """
+    Select a node for teaching. Updates current_node_id in session.
+    Used by the agent for auto-teaching when student clicks a node.
+
+    Args:
+        session_id: Session identifier
+        request: { "nodeId": "derivatives" }
+
+    Returns:
+        The selected node with its description
+    """
+    node_id = request.nodeId
+
+    node = update_current_node(session_id, node_id)
+
+    if not node:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Session {session_id} not found or node {node_id} not found"
+        )
+
+    print(f"[API] POST /session/{session_id}/node/select -> {node_id}")
+
+    return NodeSelectResponse(
+        node=GraphNodeResponse(
+            id=node.id,
+            label=node.label,
+            vizType=node.vizType,
+            description=node.description,
+            summary=node.summary,
+            expanded=node.expanded,
+            depth=node.depth,
+            parent_id=node.parent_id
+        ),
+        message=f"Selected node: {node.label}"
     )

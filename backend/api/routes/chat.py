@@ -121,7 +121,7 @@ async def generate_graph(request: ChatRequest):
 
     try:
         # Initialize Gemini model
-        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        model = genai.GenerativeModel('gemini-2.5-flash')
 
         # EXPANSION MODE: Generate 3 child nodes for a parent topic
         if request.mode == "expand":

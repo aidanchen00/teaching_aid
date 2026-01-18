@@ -5,6 +5,7 @@ Falls back to Gemini generation if OpenNote API is unavailable.
 """
 import os
 import json
+import re
 import aiohttp
 from typing import Dict, List, Optional
 import google.generativeai as genai
@@ -14,6 +15,48 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
+
+
+def clean_and_parse_json(text: str) -> Dict:
+    """
+    Clean and parse JSON from LLM response, handling common formatting issues.
+    """
+    # Remove markdown code blocks
+    text = text.strip()
+    text = re.sub(r'^```json\s*', '', text)
+    text = re.sub(r'^```\s*', '', text)
+    text = re.sub(r'\s*```$', '', text)
+    text = text.strip()
+
+    # Try direct parsing first
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # Fix common issues
+    # Remove trailing commas before closing brackets/braces
+    text = re.sub(r',(\s*[}\]])', r'\1', text)
+
+    # Try parsing again
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # Try to extract JSON object from text
+    match = re.search(r'\{[\s\S]*\}', text)
+    if match:
+        try:
+            extracted = match.group(0)
+            # Remove trailing commas
+            extracted = re.sub(r',(\s*[}\]])', r'\1', extracted)
+            return json.loads(extracted)
+        except json.JSONDecodeError:
+            pass
+
+    # Final fallback - raise the error
+    raise json.JSONDecodeError("Could not parse JSON from response", text, 0)
 
 
 class OpenNoteClient:
@@ -94,14 +137,11 @@ Format:
 Generate comprehensive educational content for each topic."""
 
         try:
-            model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            model = genai.GenerativeModel('gemini-2.5-flash')
             response = model.generate_content(prompt)
 
             if response.text:
-                # Clean and parse JSON
-                text = response.text.strip()
-                text = text.replace('```json', '').replace('```', '').strip()
-                return json.loads(text)
+                return clean_and_parse_json(response.text)
         except Exception as e:
             print(f"[OpenNote] Notebook generation error: {e}")
 
@@ -147,13 +187,11 @@ Format:
 Make questions clear and answers concise but complete."""
 
         try:
-            model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            model = genai.GenerativeModel('gemini-2.5-flash')
             response = model.generate_content(prompt)
 
             if response.text:
-                text = response.text.strip()
-                text = text.replace('```json', '').replace('```', '').strip()
-                return json.loads(text)
+                return clean_and_parse_json(response.text)
         except Exception as e:
             print(f"[OpenNote] Flashcard generation error: {e}")
 
@@ -199,13 +237,11 @@ Format:
 Include a mix of conceptual and application questions. Make solutions educational."""
 
         try:
-            model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            model = genai.GenerativeModel('gemini-2.5-flash')
             response = model.generate_content(prompt)
 
             if response.text:
-                text = response.text.strip()
-                text = text.replace('```json', '').replace('```', '').strip()
-                return json.loads(text)
+                return clean_and_parse_json(response.text)
         except Exception as e:
             print(f"[OpenNote] Practice problems generation error: {e}")
 

@@ -18,13 +18,17 @@ const SALARY_RANGES = {
   'Film': { min: 40000, max: 70000, median: 52000 },
   'Biology': { min: 48000, max: 80000, median: 60000 },
   'Chemistry': { min: 50000, max: 85000, median: 65000 },
+  'Social Sciences': { min: 50000, max: 85000, median: 62000 },
+  'Sociology': { min: 48000, max: 78000, median: 58000 },
+  'Economics': { min: 65000, max: 110000, median: 80000 },
+  'Public Policy': { min: 55000, max: 95000, median: 70000 },
   'default': { min: 45000, max: 75000, median: 58000 }
 };
 
 // School tier mapping (affects outcomes)
 const SCHOOL_TIERS = {
-  'tier1': ['MIT', 'Stanford', 'Harvard', 'Oxford', 'Cambridge', 'ETH Zurich', 'Tokyo', 'Tsinghua', 'IIT Bombay'],
-  'tier2': ['Columbia', 'McGill', 'USC', 'U Washington', 'Georgia Tech', 'UCLA', 'UT Austin', 'TU Munich', 'NUS', 'Tel Aviv'],
+  'tier1': ['MIT', 'Stanford', 'Harvard', 'Oxford', 'Cambridge', 'ETH Zurich', 'Tokyo', 'Tsinghua', 'IIT Bombay', 'Carnegie Mellon', 'UC Berkeley', 'Yale'],
+  'tier2': ['Columbia', 'McGill', 'USC', 'U Washington', 'Georgia Tech', 'UCLA', 'UT Austin', 'TU Munich', 'NUS', 'Tel Aviv', 'University of Chicago'],
   'tier3': [] // Everything else
 };
 

@@ -29,6 +29,7 @@ class Session:
     links: List[GraphLink] = field(default_factory=list)
     curriculum_context: Optional[Dict] = None  # Context from nexhacksv0
     curriculum_nodes: List[GraphNode] = field(default_factory=list)  # Generated curriculum for OpenNote
+    current_node_id: Optional[str] = None  # Track which node user is viewing (for auto-teaching)
     opennote_materials: Optional[Dict] = None  # OpenNote generated materials (notebook, flashcards, problems)
     breakout_room_id: Optional[str] = None  # Breakout study room identifier
     max_depth: int = 3  # Maximum depth for expansion (prevent infinite growth)
@@ -292,6 +293,25 @@ def get_node_by_id(session_id: str, node_id: str) -> Optional[GraphNode]:
     if not session:
         return None
 
+    for node in session.nodes:
+        if node.id == node_id:
+            return node
+
+    return None
+
+
+def update_current_node(session_id: str, node_id: str) -> Optional[GraphNode]:
+    """
+    Update the current node being viewed and return the node data.
+    Used for auto-teaching when student clicks on a node.
+    """
+    session = sessions.get(session_id)
+    if not session:
+        return None
+
+    session.current_node_id = node_id
+
+    # Find and return the node
     for node in session.nodes:
         if node.id == node_id:
             return node

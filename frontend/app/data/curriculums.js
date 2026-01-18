@@ -735,6 +735,67 @@ const rawCurriculums = [
     description: "Rocket propulsion, satellite systems, and Mars missions.",
     instructor: "Dr. Elon Research",
     students: 1654
+  },
+  // ADDITIONAL SCHOOLS
+  {
+    id: 61,
+    title: "Computer Science Fundamentals",
+    school: "Carnegie Mellon University",
+    location: { city: "Pittsburgh", country: "USA", region: "North America", coordinates: [-79.9428, 40.4433] },
+    topics: ["Computer Science", "Programming", "Algorithms", "Software Engineering"],
+    format: "project-based",
+    tags: ["rigorous", "hands-on", "industry"],
+    description: "Comprehensive CS curriculum covering systems, algorithms, and software engineering from one of the world's top CS programs.",
+    instructor: "Prof. Randy Pausch",
+    students: 3421
+  },
+  {
+    id: 62,
+    title: "General Chemistry",
+    school: "UC Berkeley",
+    location: { city: "Berkeley", country: "USA", region: "North America", coordinates: [-122.2585, 37.8719] },
+    topics: ["Chemistry", "Science", "Laboratory"],
+    format: "theory-heavy",
+    tags: ["rigorous", "lab-based", "research"],
+    description: "Foundational chemistry course covering atomic structure, bonding, thermodynamics, and chemical reactions with extensive lab work.",
+    instructor: "Prof. Jennifer Doudna",
+    students: 2876
+  },
+  {
+    id: 63,
+    title: "Organic Chemistry",
+    school: "Yale University",
+    location: { city: "New Haven", country: "USA", region: "North America", coordinates: [-72.9223, 41.3163] },
+    topics: ["Chemistry", "Organic Chemistry", "Science"],
+    format: "visual-heavy",
+    tags: ["rigorous", "comprehensive", "research"],
+    description: "Study of carbon-based compounds, reaction mechanisms, and synthesis strategies essential for pharmaceuticals and materials science.",
+    instructor: "Dr. Sarah Reisman",
+    students: 1234
+  },
+  {
+    id: 64,
+    title: "Introduction to Sociology",
+    school: "Harvard University",
+    location: { city: "Cambridge", country: "USA", region: "North America", coordinates: [-71.1167, 42.3770] },
+    topics: ["Sociology", "Social Sciences", "Research Methods"],
+    format: "theory-heavy",
+    tags: ["analytical", "research", "foundational"],
+    description: "Explore social structures, institutions, and human behavior through classical and contemporary sociological theories.",
+    instructor: "Prof. Orlando Patterson",
+    students: 2543
+  },
+  {
+    id: 65,
+    title: "Economics and Public Policy",
+    school: "University of Chicago",
+    location: { city: "Chicago", country: "USA", region: "North America", coordinates: [-87.5987, 41.7886] },
+    topics: ["Economics", "Social Sciences", "Public Policy"],
+    format: "theory-heavy",
+    tags: ["rigorous", "quantitative", "policy"],
+    description: "Analysis of economic principles and their applications to public policy decisions, from healthcare to climate change.",
+    instructor: "Prof. Steven Levitt",
+    students: 1876
   }
 ];
 

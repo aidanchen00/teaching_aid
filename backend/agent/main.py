@@ -25,7 +25,9 @@ _session_state = {
     "session_id": None,
     "current_graph": {"nodes": [], "links": [], "centerId": None},
     "curriculum_context": None,  # Context from nexhacksv0
-    "curriculum_nodes": []  # Generated curriculum nodes with descriptions
+    "curriculum_nodes": [],  # Generated curriculum nodes with descriptions
+    "current_node": None,  # Currently selected node for teaching
+    "agent_session": None  # Reference to AgentSession for auto-teaching
 }
 
 
@@ -50,9 +52,25 @@ Topics covered: {topics}
 This context can help you tailor your tutoring to their course content.
 """
 
+        # Build curriculum nodes info if available (for OpenNote integration)
+        curriculum_nodes_info = ""
+        if _session_state["curriculum_nodes"]:
+            node_summaries = []
+            for node in _session_state["curriculum_nodes"]:
+                summary = node.get("summary", "") or node.get("description", "")[:50]
+                node_summaries.append(f"- {node.get('label')}: {summary}")
+            curriculum_nodes_info = f"""
+CURRICULUM TOPICS (click to learn):
+{chr(10).join(node_summaries)}
+
+When the student clicks a topic in the graph, you will be notified automatically.
+Be ready to start teaching about the clicked topic immediately.
+"""
+
         super().__init__(
             instructions=f"""You are a friendly AI tutor helping students learn through an interactive knowledge graph.
 {curriculum_info}
+{curriculum_nodes_info}
 
 You can control the knowledge graph that the student sees using your tools:
 - explore_topic: Generate a new knowledge graph about any topic the student asks about
@@ -67,6 +85,7 @@ IMPORTANT BEHAVIORS:
 3. When they mention a topic in the current graph, use select_topic to navigate to it
 4. Keep responses SHORT (1-2 sentences). Be conversational and encouraging.
 5. Always let the student know what they can do next
+6. When you receive a notification that a student clicked a topic, START TEACHING immediately about that topic!
 
 Do not use complex formatting, emojis, or special symbols. Speak naturally.""",
         )
@@ -306,7 +325,7 @@ async def entrypoint(ctx: JobContext):
             language_code="en",
         ),
         llm=google.LLM(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
         ),
         tts=elevenlabs.TTS(
             model="eleven_turbo_v2_5",
@@ -328,6 +347,9 @@ async def entrypoint(ctx: JobContext):
         print(f"FUNCTION CALLS FINISHED")
         print(f"{'='*50}\n")
 
+    # Store session reference for auto-teaching
+    _session_state["agent_session"] = session
+
     # Start the session with our tutor agent
     await session.start(
         room=ctx.room,
@@ -338,6 +360,65 @@ async def entrypoint(ctx: JobContext):
     )
 
     print("[Agent] Session started, listening for speech...")
+
+    # Add data channel listener for node selection (auto-teaching)
+    @ctx.room.on("data_received")
+    async def on_data_received(data: bytes, participant=None, kind=None, topic=None):
+        """Handle incoming data from frontend (node selection events)."""
+        try:
+            message = json.loads(data.decode())
+            print(f"[Agent] Received data: {message}")
+
+            if message.get("type") == "command":
+                payload = message.get("payload", {})
+                action = payload.get("action")
+
+                if action == "node_selected":
+                    # Student clicked on a node - auto-teach!
+                    node_data = {
+                        "id": payload.get("nodeId"),
+                        "label": payload.get("label"),
+                        "vizType": payload.get("vizType"),
+                        "description": payload.get("description", "")
+                    }
+                    _session_state["current_node"] = node_data
+
+                    print(f"[Agent] Node selected: {node_data['label']}")
+
+                    # Generate auto-teaching response
+                    description = node_data.get("description") or f"the topic of {node_data['label']}"
+                    viz_type = node_data.get("vizType", "image")
+
+                    viz_hint = ""
+                    if viz_type == "three":
+                        viz_hint = "A 3D visualization is now showing."
+                    elif viz_type == "video":
+                        viz_hint = "An animated visualization is now playing."
+                    else:
+                        viz_hint = "A diagram is now displayed."
+
+                    # Use the stored session to generate a teaching response
+                    agent_session = _session_state.get("agent_session")
+                    if agent_session:
+                        await agent_session.generate_reply(
+                            instructions=f"""The student clicked on "{node_data['label']}" in the knowledge graph.
+
+Topic description: {description}
+{viz_hint}
+
+Start teaching about this topic immediately! Give a brief, engaging introduction (2-3 sentences).
+Explain what they're seeing in the visualization and what they'll learn.
+Be enthusiastic but concise. End by asking if they have questions or want to go deeper."""
+                        )
+                    else:
+                        print("[Agent] Warning: No agent session available for auto-teaching")
+
+        except json.JSONDecodeError as e:
+            print(f"[Agent] Failed to parse data message: {e}")
+        except Exception as e:
+            print(f"[Agent] Error handling data: {e}")
+            import traceback
+            traceback.print_exc()
 
     # Build greeting with available topics and curriculum context
     node_labels = [n.get("label", "") for n in _session_state["current_graph"].get("nodes", [])]

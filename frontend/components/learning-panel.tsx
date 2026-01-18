@@ -12,11 +12,12 @@ type Mode = 'GRAPH' | 'VIZ';
 
 interface LearningPanelProps {
   lastCommand?: AgentCommand | null;
+  sendCommand?: ((action: string, payload?: any) => void) | null;
 }
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
-export function LearningPanel({ lastCommand }: LearningPanelProps) {
+export function LearningPanel({ lastCommand, sendCommand }: LearningPanelProps) {
   const [mode, setMode] = useState<Mode>('GRAPH');
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [graph, setGraph] = useState<GraphData | null>(null);
@@ -177,6 +178,18 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
         } : null);
       }, 0);
 
+      // Notify agent about node selection for auto-teaching
+      if (sendCommand) {
+        console.log('[LearningPanel] Sending node_selected command to agent');
+        sendCommand('node_selected', {
+          nodeId: node.id,
+          label: node.label,
+          vizType: node.vizType,
+          // @ts-ignore
+          description: node.description || ''
+        });
+      }
+
       // EXPANSION LOGIC: Trigger expansion in background if node not expanded
       // Create clean node data (strip any React/Three.js references from force graph)
       const cleanNode = {
@@ -226,7 +239,7 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
     } else {
       console.log('[LearningPanel] Node not found in graph.nodes:', currentGraph.nodes);
     }
-  }, [sessionId]); // Remove graph from dependencies since we use graphRef
+  }, [sessionId, sendCommand]); // Remove graph from dependencies since we use graphRef
 
   const handleBackToGraph = () => {
     console.log('[LearningPanel] Back to graph');
