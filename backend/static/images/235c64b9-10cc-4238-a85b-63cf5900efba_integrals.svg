@@ -1,0 +1,42 @@
+<svg width="800" height="600" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="800" height="600" fill="#0f172a"/>
+<text x="400" y="50" text-anchor="middle" font-size="30" font-family="Arial, sans-serif" fill="white">Understanding Integrals</text>
+
+<path d="M100 500 C 200 200, 600 200, 700 500" stroke="#6366f1" stroke-width="3" fill="none"/>
+
+<rect x="150" y="400" width="50" height="100" fill="#10b981" opacity="0.5"/>
+<rect x="200" y="350" width="50" height="150" fill="#10b981" opacity="0.5"/>
+<rect x="250" y="300" width="50" height="200" fill="#10b981" opacity="0.5"/>
+<rect x="300" y="275" width="50" height="225" fill="#10b981" opacity="0.5"/>
+<rect x="350" y="250" width="50" height="250" fill="#10b981" opacity="0.5"/>
+
+<text x="175" y="520" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="white">Δx</text>
+<text x="225" y="520" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="white">Δx</text>
+<text x="275" y="520" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="white">Δx</text>
+<text x="325" y="520" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="white">Δx</text>
+<text x="375" y="520" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="white">Δx</text>
+
+<text x="450" y="300" font-size="20" font-family="Arial, sans-serif" fill="white">∫ f(x) dx = F(x) + C</text>
+<text x="450" y="330" font-size="14" font-family="Arial, sans-serif" fill="white">Where:</text>
+<text x="450" y="350" font-size="12" font-family="Arial, sans-serif" fill="white">f(x) is the function</text>
+<text x="450" y="370" font-size="12" font-family="Arial, sans-serif" fill="white">F(x) is the antiderivative</text>
+<text x="450" y="390" font-size="12" font-family="Arial, sans-serif" fill="white">C is the constant of integration</text>
+
+<line x1="100" y1="500" x2="700" y2="500" stroke="white" stroke-width="1"/>
+<line x1="100" y1="100" x2="100" y2="500" stroke="white" stroke-width="1"/>
+
+<text x="75" y="300" text-anchor="end" font-size="14" font-family="Arial, sans-serif" fill="white">f(x)</text>
+<text x="400" y="520" text-anchor="middle" font-size="14" font-family="Arial, sans-serif" fill="white">x</text>
+
+<text x="600" y="550" font-size="16" font-family="Arial, sans-serif" fill="#f59e0b">Area ≈ Σ f(xᵢ)Δx</text>
+<text x="600" y="575" font-size="16" font-family="Arial, sans-serif" fill="#f59e0b">Integral is the limit as Δx approaches 0</text>
+
+<text x="150" y="100" font-size="18" font-family="Arial, sans-serif" fill="white">Area Under the Curve</text>
+<text x="150" y="130" font-size="14" font-family="Arial, sans-serif" fill="white">Approximation using Rectangles</text>
+
+<rect x="50" y="20" width="10" height="10" fill="#6366f1" />
+<text x="70" y="28" font-size="12" font-family="Arial, sans-serif" fill="white">Curve</text>
+
+<rect x="50" y="40" width="10" height="10" fill="#10b981" />
+<text x="70" y="48" font-size="12" font-family="Arial, sans-serif" fill="white">Area</text>
+</svg>

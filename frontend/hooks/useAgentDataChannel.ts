@@ -14,6 +14,12 @@ export interface AgentCommand {
     label?: string;
     message?: string;
     data?: unknown;
+    sessionId?: string;  // Session ID from agent for syncing
+    graph?: {
+      centerId: string;
+      nodes: Array<{ id: string; label: string; vizType?: string }>;
+      links: Array<{ source: string; target: string }>;
+    };
   };
 }
 

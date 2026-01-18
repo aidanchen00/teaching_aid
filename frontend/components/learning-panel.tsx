@@ -1,27 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { KnowledgeGraphPanel } from './knowledge-graph-panel';
 import { LessonOverlay } from './lesson-overlay';
+import { Chat } from './chat';
 import { AgentCommand } from '@/hooks/useAgentDataChannel';
+import { GraphNode, GraphData } from '@/lib/types';
 
 type Mode = 'GRAPH' | 'VIZ';
-
-interface GraphNode {
-  id: string;
-  label: string;
-}
-
-interface GraphLink {
-  source: string;
-  target: string;
-}
-
-interface GraphData {
-  centerId: string;
-  nodes: GraphNode[];
-  links: GraphLink[];
-}
 
 interface LearningPanelProps {
   lastCommand?: AgentCommand | null;
@@ -36,6 +22,15 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Use refs to avoid stale closures in callbacks and effects
+  const graphRef = useRef<GraphData | null>(null);
+  const processedCommandRef = useRef<AgentCommand | null>(null);
+
+  // Keep graphRef in sync with graph state
+  useEffect(() => {
+    graphRef.current = graph;
+  }, [graph]);
 
   // Initialize session on mount
   useEffect(() => {
@@ -109,60 +104,98 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
     }
   };
 
-  const handleNodeClick = async (nodeId: string) => {
-    if (!sessionId) return;
-    
-    try {
-      console.log('[LearningPanel] Node clicked:', nodeId);
-      
-      // Call backend to update center
-      const response = await fetch(`${BACKEND_URL}/session/${sessionId}/select_node`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ nodeId }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to select node');
-      }
-      
-      const updatedGraph = await response.json();
-      setGraph(updatedGraph);
-      
-      // Find the selected node
-      const node = updatedGraph.nodes.find((n: GraphNode) => n.id === nodeId);
-      if (node) {
+  const handleNodeClick = useCallback((nodeId: string) => {
+    // Use ref to always get the latest graph, avoiding stale closure issues
+    const currentGraph = graphRef.current;
+    console.log('[LearningPanel] Node clicked:', nodeId, 'graph:', currentGraph, 'sessionId:', sessionId);
+
+    if (!currentGraph) {
+      console.log('[LearningPanel] No graph, aborting');
+      return;
+    }
+
+    // Find the selected node from current graph (works for both backend and agent-controlled graphs)
+    const node = currentGraph.nodes.find((n: GraphNode) => n.id === nodeId);
+    console.log('[LearningPanel] Found node:', node);
+
+    if (node) {
+      // Defer state updates to next tick to let Three.js click handling complete
+      // This prevents the re-render from disrupting OrbitControls/DragControls
+      setTimeout(() => {
+        console.log('[LearningPanel] Setting selectedNode and mode to VIZ (deferred)');
         setSelectedNode(node);
         setMode('VIZ');
-      }
-    } catch (err) {
-      console.error('[LearningPanel] Select node error:', err);
-      setError('Failed to select node');
+
+        // Update graph center locally
+        setGraph(prevGraph => prevGraph ? {
+          ...prevGraph,
+          centerId: nodeId
+        } : null);
+      }, 0);
+    } else {
+      console.log('[LearningPanel] Node not found in graph.nodes:', currentGraph.nodes);
     }
-  };
+  }, [sessionId]); // Remove graph from dependencies since we use graphRef
 
   const handleBackToGraph = () => {
     console.log('[LearningPanel] Back to graph');
     setMode('GRAPH');
   };
 
+  // Handle graph updates from Chat component
+  const handleGraphUpdate = useCallback((newGraph: GraphData) => {
+    console.log('[LearningPanel] Graph updated from chat:', newGraph);
+    setGraph(newGraph);
+    // Reset selected node when graph changes
+    setSelectedNode(null);
+    setMode('GRAPH');
+  }, []);
+
   // Handle agent commands
   useEffect(() => {
-    if (!lastCommand || !sessionId || !graph) return;
+    if (!lastCommand) return;
 
-    const { action, label } = lastCommand.payload;
-    console.log('[LearningPanel] Handling agent command:', action, label);
+    // Skip if we've already processed this exact command (prevents double-processing)
+    if (processedCommandRef.current === lastCommand) {
+      console.log('[LearningPanel] Skipping already-processed command');
+      return;
+    }
+
+    const { action, label, graph: newGraph, sessionId: agentSessionId } = lastCommand.payload;
+    console.log('[LearningPanel] Handling agent command:', action, 'sessionId:', agentSessionId);
+
+    // Mark this command as processed
+    processedCommandRef.current = lastCommand;
 
     switch (action) {
+      case 'update_graph':
+        // Agent generated a new graph
+        if (newGraph) {
+          console.log('[LearningPanel] Updating graph from agent:', newGraph);
+          // Update ref immediately so handleNodeClick has the latest graph
+          graphRef.current = newGraph;
+          setGraph(newGraph);
+          setSelectedNode(null);
+          setMode('GRAPH');
+
+          // Use agent's session ID so lesson selection works
+          if (agentSessionId) {
+            console.log('[LearningPanel] Switching to agent session:', agentSessionId);
+            setSessionId(agentSessionId);
+            localStorage.setItem('learning_session_id', agentSessionId);
+          }
+        }
+        break;
+
       case 'select_node_by_label':
-        if (label) {
+        // Use ref to get current graph, avoiding stale closure
+        const currentGraph = graphRef.current;
+        if (label && currentGraph) {
           // Find node by label (case-insensitive)
-          const node = graph.nodes.find(
+          const node = currentGraph.nodes.find(
             n => n.label.toLowerCase() === label.toLowerCase()
           );
-          
+
           if (node) {
             handleNodeClick(node.id);
           } else {
@@ -172,27 +205,24 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
           }
         }
         break;
-        
+
       case 'back_to_graph':
         handleBackToGraph();
         break;
-        
+
       case 'start_lesson':
-        if (selectedNode) {
-          setMode('VIZ');
-        } else {
-          console.warn('[LearningPanel] No node selected for start_lesson');
-        }
+        // Check current selected node from ref pattern
+        setMode('VIZ');
         break;
-        
+
       case 'end_lesson':
         handleBackToGraph();
         break;
-        
+
       default:
         console.log('[LearningPanel] Unhandled command:', action);
     }
-  }, [lastCommand, sessionId, graph, selectedNode]);
+  }, [lastCommand, handleNodeClick]); // Only depend on lastCommand and handleNodeClick
 
   if (isLoading) {
     return (
@@ -221,6 +251,13 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
     );
   }
 
+  // Debug: log render state
+  console.log('[LearningPanel] Render state:', { mode, selectedNode: selectedNode?.id, sessionId, graphNodes: graph?.nodes?.length });
+
+  // Check why LessonOverlay might not render
+  const shouldShowOverlay = mode === 'VIZ' && selectedNode && sessionId;
+  console.log('[LearningPanel] Should show overlay:', shouldShowOverlay, { mode, hasSelectedNode: !!selectedNode, hasSessionId: !!sessionId });
+
   return (
     <div className="w-full h-full relative">
       {/* Error toast */}
@@ -229,21 +266,31 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
           {error}
         </div>
       )}
-      
-      {/* Knowledge Graph */}
+
+      {/* Knowledge Graph - key forces remount when session or graph structure changes */}
       {graph && (
-        <KnowledgeGraphPanel 
-          graph={graph} 
+        <KnowledgeGraphPanel
+          key={`${sessionId}-${graph.centerId}`}
+          graph={graph}
           onNodeClick={handleNodeClick}
           isBlurred={mode === 'VIZ'}
         />
       )}
-      
-      {/* Lesson Overlay */}
-      {mode === 'VIZ' && selectedNode && sessionId && (
-        <LessonOverlay 
-          node={selectedNode}
+
+      {/* Chat Component */}
+      {mode === 'GRAPH' && (
+        <Chat
+          onGraphUpdate={handleGraphUpdate}
+          currentGraph={graph}
           sessionId={sessionId}
+        />
+      )}
+
+      {/* Lesson Overlay */}
+      {shouldShowOverlay && (
+        <LessonOverlay
+          node={selectedNode!}
+          sessionId={sessionId!}
           onBackToGraph={handleBackToGraph}
         />
       )}

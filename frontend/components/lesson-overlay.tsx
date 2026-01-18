@@ -1,16 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { selectLesson, pollVizJob, VizJobResponse } from '@/lib/api';
-import { VizProgress } from './viz/viz-progress';
-import { ThreeRenderer } from './viz/three-renderer';
+import { GraphNode, VizType } from '@/lib/types';
 
-interface GraphNode {
-  id: string;
-  label: string;
-}
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
+// Labels and styles for vizType
+const VIZ_TYPE_CONFIG: Record<VizType, { label: string; techName: string; color: string }> = {
+  three: { label: '3D Visualization', techName: 'Three.js', color: 'bg-indigo-500' },
+  video: { label: 'Animated Explanation', techName: 'Manim', color: 'bg-emerald-500' },
+  image: { label: 'Educational Diagram', techName: 'Nano Banana Pro', color: 'bg-amber-500' },
+};
 
 interface LessonOverlayProps {
   node: GraphNode;
@@ -18,40 +19,37 @@ interface LessonOverlayProps {
   onBackToGraph: () => void;
 }
 
-type VizState = 'loading' | 'ready' | 'error';
-
 export function LessonOverlay({ node, sessionId, onBackToGraph }: LessonOverlayProps) {
-  const [lessonData, setLessonData] = useState<{
-    title: string;
-    summary: string;
-    lessonId: string;
-  } | null>(null);
-  const [vizState, setVizState] = useState<VizState>('loading');
-  const [vizData, setVizData] = useState<VizJobResponse['viz'] | null>(null);
+  const [svgContent, setSvgContent] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [vizContentType, setVizContentType] = useState<'svg' | 'video'>('svg');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isCached, setIsCached] = useState(false);
   const [vizStage, setVizStage] = useState<string>('Initializing...');
-  const [vizError, setVizError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
 
-  // Load lesson and start visualization generation
+  const vizType = node.vizType || 'image';
+  const config = VIZ_TYPE_CONFIG[vizType];
+
+  // Load visualization
   useEffect(() => {
-    const loadLesson = async () => {
+    setLoading(true);
+    setError(null);
+    setSvgContent(null);
+    setVideoUrl(null);
+    setVizContentType('svg');
+    setIsCached(false);
+
+    const loadVisualization = async () => {
       try {
-        console.log('[LessonOverlay] Selecting lesson for node:', node.id);
-        
-        // Call lesson select endpoint
-        const response = await selectLesson(sessionId, node.id);
-        
-        setLessonData({
-          title: response.title,
-          summary: response.summary,
-          lessonId: response.lessonId,
-        });
+        console.log('[LessonOverlay] Selecting lesson for node:', node.id, 'label:', node.label, 'vizType:', vizType);
+
+        // Call lesson select endpoint (with fallback to direct endpoint if session not found)
+        const response = await selectLesson(sessionId, node.id, node.label, vizType);
 
         console.log('[LessonOverlay] Lesson selected, vizJobId:', response.vizJobId);
-        
-        // Start polling for visualization
-        setVizState('loading');
-        
+
+        // Poll for visualization
         const vizResult = await pollVizJob(
           response.vizJobId,
           (stage) => {
@@ -61,149 +59,163 @@ export function LessonOverlay({ node, sessionId, onBackToGraph }: LessonOverlayP
         );
 
         if (vizResult.status === 'done' && vizResult.viz) {
-          console.log('[LessonOverlay] Visualization ready:', vizResult.viz.type);
-          setVizData(vizResult.viz);
-          setVizState('ready');
+          console.log('[LessonOverlay] Visualization ready, type:', vizResult.viz.type, 'cached:', vizResult.viz.cached);
+          setIsCached(vizResult.viz.cached || false);
+
+          if (vizResult.viz.type === 'video' && vizResult.viz.videoUrl) {
+            // Video content
+            setVizContentType('video');
+            setVideoUrl(`${BACKEND_URL}${vizResult.viz.videoUrl}`);
+          } else if (vizResult.viz.svgContent) {
+            // SVG content
+            setVizContentType('svg');
+            setSvgContent(vizResult.viz.svgContent);
+          } else {
+            setError('No visualization content received');
+          }
         } else if (vizResult.status === 'error') {
           console.error('[LessonOverlay] Visualization error:', vizResult.message);
-          setVizError(vizResult.message || 'Failed to generate visualization');
-          setVizState('error');
+          setError(vizResult.message || 'Failed to generate visualization');
         }
-      } catch (error: any) {
-        console.error('[LessonOverlay] Error loading lesson:', error);
-        setVizError(error.message || 'Failed to load lesson');
-        setVizState('error');
+      } catch (err: any) {
+        console.error('[LessonOverlay] Error loading lesson:', err);
+        setError(err.message || 'Failed to load lesson');
+      } finally {
+        setLoading(false);
       }
     };
 
-    loadLesson();
-  }, [node.id, sessionId, retryCount]);
+    loadVisualization();
+  }, [node.id, node.label, vizType, sessionId]);
 
   const handleRetry = () => {
-    if (retryCount < 1) {
-      setRetryCount(retryCount + 1);
-      setVizState('loading');
-      setVizError(null);
-    }
+    setLoading(true);
+    setError(null);
+    setSvgContent(null);
+    setVideoUrl(null);
+
+    const loadVisualization = async () => {
+      try {
+        const response = await selectLesson(sessionId, node.id, node.label, vizType);
+        const vizResult = await pollVizJob(
+          response.vizJobId,
+          (stage) => setVizStage(stage)
+        );
+
+        if (vizResult.status === 'done' && vizResult.viz) {
+          setIsCached(vizResult.viz.cached || false);
+          if (vizResult.viz.type === 'video' && vizResult.viz.videoUrl) {
+            setVizContentType('video');
+            setVideoUrl(`${BACKEND_URL}${vizResult.viz.videoUrl}`);
+          } else if (vizResult.viz.svgContent) {
+            setVizContentType('svg');
+            setSvgContent(vizResult.viz.svgContent);
+          } else {
+            setError('Failed to generate visualization');
+          }
+        } else {
+          setError('Failed to generate visualization');
+        }
+      } catch (err: any) {
+        setError(err.message || 'Failed to load lesson');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadVisualization();
   };
 
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-
   return (
-    <div className="absolute inset-0 z-10 flex items-center justify-center p-8">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
-        <CardHeader className="border-b">
-          <div className="flex items-start justify-between">
-            <div>
-              <CardTitle className="text-3xl font-bold">
-                {lessonData?.title || node.label}
-              </CardTitle>
-              <CardDescription className="mt-2">
-                {lessonData?.summary || 'Loading lesson...'}
-              </CardDescription>
+    <div className="fixed inset-0 z-50 bg-slate-950">
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-gradient-to-b from-slate-950 to-transparent">
+        <div>
+          <h1 className="text-2xl font-bold text-white">{node.label}</h1>
+          <p className="text-slate-400 text-sm flex items-center gap-2">
+            <span className={`px-2 py-0.5 rounded text-xs font-bold ${config.color} text-white`}>
+              {config.techName}
+            </span>
+            {config.label}
+          </p>
+        </div>
+        <button
+          onClick={onBackToGraph}
+          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Graph
+        </button>
+      </div>
+
+      {/* Visualization */}
+      <div className="w-full h-full flex items-center justify-center pt-20">
+        {loading && (
+          <div className="flex flex-col items-center gap-4">
+            <div className={`w-16 h-16 border-4 rounded-full animate-spin ${
+              vizType === 'three' ? 'border-indigo-500/30 border-t-indigo-500' :
+              vizType === 'video' ? 'border-emerald-500/30 border-t-emerald-500' :
+              'border-amber-500/30 border-t-amber-500'
+            }`} />
+            <p className="text-slate-400">{vizStage}</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center">
+              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={onBackToGraph}
-              className="ml-4"
+            <p className="text-red-400">{error}</p>
+            <button
+              onClick={handleRetry}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg"
             >
-              Back to Graph
-            </Button>
+              Retry
+            </button>
           </div>
-        </CardHeader>
-        
-        <CardContent className="pt-6 space-y-6">
-          {/* Visualization Section */}
-          <div>
-            <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
-              <span className="text-2xl">🎨</span>
-              Interactive Visualization
-            </h3>
-            
-            <div className="border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
-              {vizState === 'loading' && (
-                <VizProgress stage={vizStage} />
-              )}
-              
-              {vizState === 'ready' && vizData && (
-                <>
-                  {vizData.type === 'three_spec' && vizData.spec && (
-                    <ThreeRenderer spec={vizData.spec} />
-                  )}
-                  
-                  {vizData.type === 'manim_mp4' && vizData.url && (
-                    <div className="w-full h-[500px] bg-black flex items-center justify-center">
-                      <video
-                        src={`${BACKEND_URL}${vizData.url}`}
-                        controls
-                        autoPlay
-                        loop
-                        className="max-w-full max-h-full"
-                      >
-                        Your browser does not support video playback.
-                      </video>
-                    </div>
-                  )}
-                  
-                  {vizData.type === 'image' && vizData.url && (
-                    <div className="w-full h-[500px] flex items-center justify-center bg-slate-100">
-                      <img
-                        src={`${BACKEND_URL}${vizData.url}`}
-                        alt={lessonData?.title || 'Visualization'}
-                        className="max-w-full max-h-full object-contain"
-                      />
-                    </div>
-                  )}
-                </>
-              )}
-              
-              {vizState === 'error' && (
-                <div className="h-[400px] flex flex-col items-center justify-center p-8">
-                  <div className="text-6xl mb-4">⚠️</div>
-                  <p className="text-lg font-semibold text-slate-700 mb-2">
-                    Visualization Generation Failed
-                  </p>
-                  <p className="text-sm text-slate-500 mb-4 text-center max-w-md">
-                    {vizError}
-                  </p>
-                  {retryCount < 1 && (
-                    <Button onClick={handleRetry} variant="outline">
-                      Retry Generation
-                    </Button>
-                  )}
-                  {retryCount >= 1 && (
-                    <p className="text-xs text-slate-400">
-                      Maximum retry attempts reached
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+        )}
 
-          {/* Key Concepts Section */}
-          {lessonData && (
-            <div>
-              <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
-                <span className="text-2xl">💡</span>
-                About This Topic
-              </h3>
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-                <p className="text-slate-700">
-                  {lessonData.summary}
-                </p>
-              </div>
-            </div>
-          )}
+        {/* SVG Content */}
+        {vizContentType === 'svg' && svgContent && !loading && (
+          <div
+            className="max-w-5xl max-h-[85vh] p-4"
+            dangerouslySetInnerHTML={{ __html: svgContent }}
+          />
+        )}
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t">
-            <Button variant="outline" className="flex-1" onClick={onBackToGraph}>
-              Explore More Topics
-            </Button>
+        {/* Video Content */}
+        {vizContentType === 'video' && videoUrl && !loading && (
+          <div className="max-w-5xl max-h-[85vh] p-4">
+            <video
+              src={videoUrl}
+              controls
+              autoPlay
+              loop
+              className="w-full h-auto rounded-lg shadow-2xl"
+              style={{ maxHeight: '80vh' }}
+            >
+              Your browser does not support the video tag.
+            </video>
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
+
+      {/* Type indicator */}
+      <div className="absolute bottom-4 right-4 px-3 py-2 bg-slate-900/80 backdrop-blur rounded-lg flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full ${config.color}`} />
+          <span className="text-white text-sm font-medium">{config.techName}</span>
+        </div>
+        <span className="text-slate-500">|</span>
+        <span className="text-slate-400 text-xs uppercase tracking-wide">
+          {isCached ? 'Pre-loaded' : 'Generated'}
+        </span>
+      </div>
     </div>
   );
 }

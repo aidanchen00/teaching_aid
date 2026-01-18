@@ -1,0 +1,53 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradientIndigo" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3730a3;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="gradientEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#065f46;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="gradientAmber" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="gradientRed" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#b91c1c;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-color="black" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <rect width="800" height="600" fill="#0f172a"/>
+
+  <text x="400" y="50" font-size="24" fill="white" text-anchor="middle">Calculus - Derivatives &amp; Integrals</text>
+
+  <!-- 3D Axes -->
+  <line x1="150" y1="300" x2="650" y2="300" stroke="white" stroke-width="2"/>
+  <line x1="150" y1="300" x2="350" y2="100" stroke="white" stroke-width="2"/>
+  <line x1="150" y1="300" x2="250" y2="450" stroke="white" stroke-width="2"/>
+
+  <text x="660" y="305" font-size="12" fill="white">x</text>
+  <text x="360" y="95" font-size="12" fill="white">y</text>
+  <text x="240" y="465" font-size="12" fill="white">z</text>
+
+  <!-- 3D Surface Representation (Paraboloid) -->
+  <path d="M200 250 C 250 200, 350 200, 400 250 S 550 300, 600 350" stroke="url(#gradientIndigo)" stroke-width="3" fill="none" filter="url(#shadow)"/>
+  <path d="M200 350 C 250 400, 350 400, 400 350 S 550 300, 600 250" stroke="url(#gradientEmerald)" stroke-width="3" fill="none" filter="url(#shadow)"/>
+    <path d="M250 275 C 300 225, 400 225, 450 275 S 600 325, 650 375" stroke="url(#gradientIndigo)" stroke-width="2" fill="none"/>
+  <path d="M250 325 C 300 375, 400 375, 450 325 S 600 275, 650 225" stroke="url(#gradientEmerald)" stroke-width="2" fill="none"/>
+
+  <!-- Derivative Tangent Line -->
+  <line x1="300" y1="275" x2="450" y2="175" stroke="url(#gradientAmber)" stroke-width="4" filter="url(#shadow)"/>
+  <text x="450" y="170" font-size="12" fill="white">Derivative</text>
+
+  <!-- Integral Area Representation -->
+  <rect x="450" y="300" width="100" height="50" fill="url(#gradientRed)" opacity="0.7" filter="url(#shadow)"/>
+    <rect x="500" y="300" width="50" height="25" fill="url(#gradientRed)" opacity="0.7" filter="url(#shadow)"/>
+  <text x="500" y="370" font-size="12" fill="white">Integral</text>
+
+    <ellipse cx="400" cy="300" rx="5" ry="3" fill="white" filter="url(#shadow)"/>
+</svg>

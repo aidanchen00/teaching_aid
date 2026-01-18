@@ -1,0 +1,52 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="600" fill="#0f172a"/>
+
+  <text x="400" y="50" font-size="24" font-family="Arial, sans-serif" font-weight="bold" fill="white" text-anchor="middle">Periodic Table &amp; Calculus Applications</text>
+
+  <rect x="50" y="100" width="700" height="400" fill="#1e293b" rx="10"/>
+
+  <text x="100" y="140" font-size="16" font-family="Arial, sans-serif" fill="white">Electronegativity Trend:</text>
+  <line x1="100" y1="150" x2="250" y2="150" stroke="#6366f1" stroke-width="2"/>
+  <text x="260" y="155" font-size="14" font-family="Arial, sans-serif" fill="white">Increases</text>
+
+  <text x="100" y="180" font-size="16" font-family="Arial, sans-serif" fill="white">Ionization Energy Trend:</text>
+  <line x1="100" y1="190" x2="250" y2="190" stroke="#10b981" stroke-width="2"/>
+  <text x="260" y="195" font-size="14" font-family="Arial, sans-serif" fill="white">Increases</text>
+
+  <text x="100" y="220" font-size="16" font-family="Arial, sans-serif" fill="white">Atomic Radius Trend:</text>
+  <line x1="100" y1="230" x2="250" y2="230" stroke="#f59e0b" stroke-width="2"/>
+  <text x="260" y="235" font-size="14" font-family="Arial, sans-serif" fill="white">Decreases</text>
+
+  <text x="100" y="260" font-size="16" font-family="Arial, sans-serif" fill="white">Group 1 (Alkali Metals):</text>
+  <rect x="100" y="270" width="20" height="20" fill="#ef4444"/>
+  <text x="130" y="285" font-size="14" font-family="Arial, sans-serif" fill="white">Highly Reactive</text>
+
+    <text x="400" y="140" font-size="16" font-family="Arial, sans-serif" fill="white">Derivative Application (Rate of Change):</text>
+    <path d="M400 150 C 450 100, 550 200, 600 150" stroke="#6366f1" stroke-width="2" fill="transparent"/>
+    <circle cx="600" cy="150" r="5" fill="#6366f1"/>
+    <line x1="600" y1="150" x2="650" y2="120" stroke="#10b981" stroke-width="2"/>
+    <text x="660" y="125" font-size="12" font-family="Arial, sans-serif" fill="white">Tangent = Rate</text>
+
+
+  <text x="400" y="200" font-size="16" font-family="Arial, sans-serif" fill="white">Example:</text>
+  <text x="400" y="220" font-size="14" font-family="Arial, sans-serif" fill="white">Reaction Rate = d[Reactant]/dt</text>
+
+  <rect x="380" y="230" width="250" height="1" fill="#f59e0b"/>
+  <text x="400" y="280" font-size="16" font-family="Arial, sans-serif" fill="white">Integral Application (Accumulation):</text>
+    <path d="M400 300 C 450 350, 550 250, 600 300" stroke="#6366f1" stroke-width="2" fill="transparent"/>
+   <path d="M400 300 C 450 350, 550 250, 600 300" stroke="#6366f1" stroke-width="2" fill="#6366f1" opacity="0.3"/>
+
+    <text x="610" y="305" font-size="12" font-family="Arial, sans-serif" fill="white">Area = Total Change</text>
+
+  <text x="400" y="340" font-size="16" font-family="Arial, sans-serif" fill="white">Example:</text>
+  <text x="400" y="360" font-size="14" font-family="Arial, sans-serif" fill="white">Total Product = ∫ (Reaction Rate) dt</text>
+<rect x="380" y="370" width="250" height="1" fill="#f59e0b"/>
+
+<text x="100" y="350" font-size="16" font-family="Arial, sans-serif" fill="white">Periodic Properties &amp; Modeling:</text>
+<text x="100" y="380" font-size="14" font-family="Arial, sans-serif" fill="white">Mathematical models use periodic table trends to predict </text>
+<text x="100" y="400" font-size="14" font-family="Arial, sans-serif" fill="white">chemical behavior and simulate reactions.</text>
+
+ <line x1="50" y1="520" x2="750" y2="520" stroke="#f59e0b" stroke-width="1"/>
+  <text x="400" y="550" font-size="12" font-family="Arial, sans-serif" fill="white" text-anchor="middle">Created for educational purposes.  Illustrative examples only.</text>
+
+</svg>

@@ -1,0 +1,66 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="600" fill="#0f172a"/>
+
+  <text x="400" y="50" text-anchor="middle" font-size="30" fill="white" font-family="Arial, sans-serif">The Periodic Table</text>
+  <text x="400" y="75" text-anchor="middle" font-size="12" fill="#6366f1" font-family="Arial, sans-serif">Elements &amp; Applications</text>
+
+  <rect x="50" y="100" width="700" height="450" fill="#1e293b" rx="10" ry="10"/>
+
+  <text x="100" y="140" font-size="18" fill="white" font-family="Arial, sans-serif">Key Groups</text>
+
+  <rect x="90" y="150" width="10" height="30" fill="#ef4444"/>
+  <text x="110" y="170" font-size="12" fill="white" font-family="Arial, sans-serif">Alkali Metals</text>
+
+  <rect x="90" y="190" width="10" height="30" fill="#f59e0b"/>
+  <text x="110" y="210" font-size="12" fill="white" font-family="Arial, sans-serif">Alkaline Earth Metals</text>
+
+  <rect x="90" y="230" width="10" height="30" fill="#6366f1"/>
+  <text x="110" y="250" font-size="12" fill="white" font-family="Arial, sans-serif">Halogens</text>
+
+  <rect x="90" y="270" width="10" height="30" fill="#10b981"/>
+  <text x="110" y="290" font-size="12" fill="white" font-family="Arial, sans-serif">Noble Gases</text>
+
+  <line x="200" y="120" x2="200" y="430" stroke="white" stroke-width="1" stroke-dasharray="5,5"/>
+
+  <text x="220" y="140" font-size="18" fill="white" font-family="Arial, sans-serif">Periodic Trends</text>
+
+  <text x="230" y="180" font-size="14" fill="white" font-family="Arial, sans-serif">Atomic Radius</text>
+  <line x="250" y="190" x2="350" y="190" stroke="white" stroke-width="2"/>
+  <text x="250" y="195" font-size="10" fill="white" font-family="Arial, sans-serif" dy="1em">Decreases</text>
+
+  <text x="230" y="230" font-size="14" fill="white" font-family="Arial, sans-serif">Electronegativity</text>
+  <line x="250" y="240" x2="350" y="240" stroke="white" stroke-width="2"/>
+  <text x="250" y="245" font-size="10" fill="white" font-family="Arial, sans-serif" dy="1em">Increases</text>
+
+  <text x="230" y="280" font-size="14" fill="white" font-family="Arial, sans-serif">Ionization Energy</text>
+  <line x="250" y="290" x2="350" y="290" stroke="white" stroke-width="2"/>
+  <text x="250" y="295" font-size="10" fill="white" font-family="Arial, sans-serif" dy="1em">Increases</text>
+
+  <path d="M350 175 l15 15 l-15 15" stroke="white" fill="none" />
+
+  <text x="370" y="200" font-size="14" fill="white" font-family="Arial, sans-serif">Downwards:</text>
+  <text x="370" y="220" font-size="12" fill="white" font-family="Arial, sans-serif">Atomic Radius Increases</text>
+  <text x="370" y="240" font-size="12" fill="white" font-family="Arial, sans-serif">Electronegativity Decreases</text>
+  <text x="370" y="260" font-size="12" fill="white" font-family="Arial, sans-serif">Ionization Energy Decreases</text>
+
+  <line x="490" y="120" x2="490" y="430" stroke="white" stroke-width="1" stroke-dasharray="5,5"/>
+
+  <text x="510" y="140" font-size="18" fill="white" font-family="Arial, sans-serif">Applications (Examples)</text>
+
+  <text x="520" y="180" font-size="14" fill="white" font-family="Arial, sans-serif">Li (Lithium)</text>
+  <text x="520" y="200" font-size="12" fill="white" font-family="Arial, sans-serif">Batteries, Mental Health Treatment</text>
+
+  <text x="520" y="240" font-size="14" fill="white" font-family="Arial, sans-serif">Na (Sodium)</text>
+  <text x="520" y="260" font-size="12" fill="white" font-family="Arial, sans-serif">Table Salt, Nerve Function</text>
+
+  <text x="520" y="300" font-size="14" fill="white" font-family="Arial, sans-serif">Fe (Iron)</text>
+  <text x="520" y="320" font-size="12" fill="white" font-family="Arial, sans-serif">Steel Production, Hemoglobin</text>
+
+  <text x="520" y="360" font-size="14" fill="white" font-family="Arial, sans-serif">Cl (Chlorine)</text>
+  <text x="520" y="380" font-size="12" fill="white" font-family="Arial, sans-serif">Water Purification, Disinfectant</text>
+
+  <text x="520" y="420" font-size="14" fill="white" font-family="Arial, sans-serif">He (Helium)</text>
+  <text x="520" y="440" font-size="12" fill="white" font-family="Arial, sans-serif">Balloons, MRI Coolant</text>
+
+  <text x="400" y="570" text-anchor="middle" font-size="10" fill="white" font-family="Arial, sans-serif">Data and Information are simplified for illustrative purposes.</text>
+</svg>

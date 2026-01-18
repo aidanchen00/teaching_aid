@@ -70,9 +70,9 @@ def run_agent():
     env["PYTHONPATH"] = str(BACKEND_DIR)
     env["PYTHONUNBUFFERED"] = "1"
 
-    # Run agent with 'connect' to directly join the learning room
+    # Run agent with 'dev' mode - registers worker, LiveKit dispatches to rooms
     proc = subprocess.Popen(
-        [sys.executable, "-u", str(agent_path), "connect", "--room", "learning-room"],
+        [sys.executable, "-u", str(agent_path), "dev"],
         cwd=str(BACKEND_DIR),
         env=env,
     )

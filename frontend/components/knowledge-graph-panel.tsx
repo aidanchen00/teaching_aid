@@ -2,28 +2,19 @@
 
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { Card } from '@/components/ui/card';
+import { GraphData, VizType } from '@/lib/types';
 
 // Dynamically import ForceGraph3D to avoid SSR issues
 const ForceGraph3D = dynamic(() => import('react-force-graph-3d'), {
   ssr: false,
 });
 
-interface GraphNode {
-  id: string;
-  label: string;
-}
-
-interface GraphLink {
-  source: string;
-  target: string;
-}
-
-interface GraphData {
-  centerId: string;
-  nodes: GraphNode[];
-  links: GraphLink[];
-}
+// Colors for vizType indicators
+const VIZ_TYPE_COLORS: Record<VizType, string> = {
+  three: '#6366f1',  // indigo - Interactive 3D
+  video: '#10b981',  // emerald - Animation
+  image: '#f59e0b',  // amber - Diagram
+};
 
 interface KnowledgeGraphPanelProps {
   graph: GraphData;
@@ -65,9 +56,9 @@ export function KnowledgeGraphPanel({
     if (fgRef.current) {
       try {
         console.log('[Graph] Recentering camera to origin');
-        // Position camera directly in front, looking at origin
+        // Position camera very close to nodes
         fgRef.current.cameraPosition(
-          { x: 0, y: 0, z: 250 },     // Camera straight ahead
+          { x: 0, y: 0, z: 80 },      // Even closer
           { x: 0, y: 0, z: 0 },       // Look at origin (center)
           1500                         // Duration
         );
@@ -77,17 +68,40 @@ export function KnowledgeGraphPanel({
     }
   };
 
+  // Get node color based on vizType or center status
+  const getNodeColor = (node: any): string => {
+    if (node.isCenter) {
+      return '#6366f1'; // indigo for center
+    }
+    if (node.vizType && VIZ_TYPE_COLORS[node.vizType as VizType]) {
+      return VIZ_TYPE_COLORS[node.vizType as VizType];
+    }
+    return '#64748b'; // slate for default
+  };
+
+  // Generate a key that changes when graph structure changes (forces remount)
+  const graphKey = graph.nodes.map(n => n.id).sort().join(',');
+
   // Format data for react-force-graph-3d
+  // Give initial positions spread out, but let them float freely
   const graphData = {
-    nodes: graph.nodes.map(node => ({
-      id: node.id,
-      label: node.label,
-      isCenter: node.id === graph.centerId,
-      // Fix center node at origin
-      fx: node.id === graph.centerId ? 0 : undefined,
-      fy: node.id === graph.centerId ? 0 : undefined,
-      fz: node.id === graph.centerId ? 0 : undefined,
-    })),
+    nodes: graph.nodes.map((node, index) => {
+      const isCenter = node.id === graph.centerId;
+      // Start nodes spread out in a circle
+      const radius = 50;
+      const angle = (index / graph.nodes.length) * 2 * Math.PI;
+
+      return {
+        id: node.id,
+        label: node.label,
+        vizType: node.vizType,
+        isCenter,
+        // Initial positions (not fixed - nodes can move)
+        x: isCenter ? 0 : Math.cos(angle) * radius,
+        y: isCenter ? 0 : Math.sin(angle) * radius,
+        z: 0,
+      };
+    }),
     links: graph.links.map(link => ({
       source: link.source,
       target: link.target,
@@ -98,10 +112,10 @@ export function KnowledgeGraphPanel({
   useEffect(() => {
     if (fgRef.current && is3DReady) {
       console.log('[Graph] Initializing camera position');
-      // Set initial camera position immediately - straight ahead
+      // Set initial camera very close to nodes
       try {
         fgRef.current.cameraPosition(
-          { x: 0, y: 0, z: 250 },     // Straight ahead
+          { x: 0, y: 0, z: 80 },      // Very close
           { x: 0, y: 0, z: 0 },       // Look at origin
           0                            // Instant
         );
@@ -151,22 +165,41 @@ export function KnowledgeGraphPanel({
       <div ref={containerRef} className="h-full w-full bg-slate-950 relative">
         {is3DReady && dimensions.width > 0 && dimensions.height > 0 && (
           <ForceGraph3D
+            key={graphKey}
             ref={fgRef}
             graphData={graphData}
             width={dimensions.width}
             height={dimensions.height}
             nodeLabel="label"
-            nodeAutoColorBy="isCenter"
+            nodeAutoColorBy={undefined}
             nodeVal={(node: any) => node.isCenter ? 15 : 8}
-            nodeColor={(node: any) => node.isCenter ? '#6366f1' : '#64748b'}
+            nodeColor={getNodeColor}
             nodeOpacity={1.0}
             nodeRelSize={6}
             linkColor={() => '#475569'}
             linkWidth={2}
             linkOpacity={0.6}
-            onNodeClick={(node: any) => {
-              console.log('[Graph] Node clicked:', node.id);
-              onNodeClick(node.id);
+            linkDirectionalParticles={0}
+            // Spread unconnected nodes apart using strong repulsion
+            d3Force={(d3ForceInstance: any) => {
+              // Link distance for when there ARE links
+              d3ForceInstance('link')?.distance(150).strength(1);
+              // STRONG repulsion to push unconnected nodes apart
+              d3ForceInstance('charge')?.strength(-2000).distanceMin(50);
+              // Weak center
+              d3ForceInstance('center')?.strength(0.01);
+            }}
+            onNodeClick={(node: any, event: any) => {
+              try {
+                console.log('[Graph] Node clicked:', node?.id, 'node object:', node);
+                if (node?.id) {
+                  onNodeClick(node.id);
+                } else {
+                  console.error('[Graph] Node click but no node ID!', node);
+                }
+              } catch (err) {
+                console.error('[Graph] Error in onNodeClick handler:', err);
+              }
             }}
             onNodeHover={(node: any) => {
               if (node) {
@@ -177,12 +210,12 @@ export function KnowledgeGraphPanel({
             }}
             backgroundColor="#020617"
             showNavInfo={false}
-            enableNodeDrag={false}
+            enableNodeDrag={true}
             enableNavigationControls={true}
-            warmupTicks={100}
-            cooldownTicks={0}
-            d3AlphaDecay={0.05}
-            d3VelocityDecay={0.4}
+            warmupTicks={200}
+            cooldownTicks={50}
+            d3AlphaDecay={0.01}
+            d3VelocityDecay={0.2}
             onEngineStop={() => {
               // Recenter camera when physics simulation stops
               console.log('[Graph] Physics engine stopped, recentering camera');
@@ -196,9 +229,24 @@ export function KnowledgeGraphPanel({
         
         {/* Overlay instructions and controls */}
         <div className="absolute bottom-4 left-4 bg-slate-900/80 backdrop-blur-sm border border-slate-700 rounded-lg px-4 py-2">
-          <p className="text-xs text-slate-300">
+          <p className="text-xs text-slate-300 mb-2">
             Click a node to learn • Drag to rotate • Scroll to zoom
           </p>
+          {/* vizType legend */}
+          <div className="flex gap-3 text-xs">
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+              <span className="text-slate-400">3D</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span className="text-slate-400">Animation</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+              <span className="text-slate-400">Diagram</span>
+            </span>
+          </div>
         </div>
         
         {/* Recenter button */}

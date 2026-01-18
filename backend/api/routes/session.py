@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Dict, List
+from typing import Dict, List, Optional, Any
 from api.session_store import (
     create_session,
     get_session,
@@ -16,22 +16,27 @@ class CreateSessionResponse(BaseModel):
 class SelectNodeRequest(BaseModel):
     nodeId: str
 
+class GraphNodeResponse(BaseModel):
+    id: str
+    label: str
+    vizType: Optional[str] = None
+
 class GraphResponse(BaseModel):
     centerId: str
-    nodes: List[Dict[str, str]]
+    nodes: List[GraphNodeResponse]
     links: List[Dict[str, str]]
 
 @router.post("/create")
-async def create_new_session(initial_center_id: str = "derivatives") -> CreateSessionResponse:
+async def create_new_session() -> CreateSessionResponse:
     """
-    Create a new learning session.
-    
+    Create a new learning session with initial 3 nodes.
+
     Returns:
         { "sessionId": "uuid" }
     """
-    session = create_session(initial_center_id)
+    session = create_session()
     print(f"[API] POST /session/create -> {session.session_id}")
-    
+
     return CreateSessionResponse(sessionId=session.session_id)
 
 @router.get("/{session_id}/graph")
@@ -58,7 +63,10 @@ async def get_session_graph(session_id: str) -> GraphResponse:
 
     return GraphResponse(
         centerId=session.center_id,
-        nodes=[{"id": node.id, "label": node.label} for node in session.nodes],
+        nodes=[
+            GraphNodeResponse(id=node.id, label=node.label, vizType=node.vizType)
+            for node in session.nodes
+        ],
         links=[{"source": link.source, "target": link.target} for link in session.links]
     )
 
@@ -85,10 +93,13 @@ async def select_node(session_id: str, request: SelectNodeRequest) -> GraphRespo
         )
     
     print(f"[API] POST /session/{session_id}/select_node -> new center: {node_id}")
-    
+
     return GraphResponse(
         centerId=session.center_id,
-        nodes=[{"id": node.id, "label": node.label} for node in session.nodes],
+        nodes=[
+            GraphNodeResponse(id=node.id, label=node.label, vizType=node.vizType)
+            for node in session.nodes
+        ],
         links=[{"source": link.source, "target": link.target} for link in session.links]
     )
 
@@ -109,9 +120,12 @@ async def back_to_graph(session_id: str) -> GraphResponse:
         raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
     
     print(f"[API] POST /session/{session_id}/back_to_graph")
-    
+
     return GraphResponse(
         centerId=session.center_id,
-        nodes=[{"id": node.id, "label": node.label} for node in session.nodes],
+        nodes=[
+            GraphNodeResponse(id=node.id, label=node.label, vizType=node.vizType)
+            for node in session.nodes
+        ],
         links=[{"source": link.source, "target": link.target} for link in session.links]
     )
