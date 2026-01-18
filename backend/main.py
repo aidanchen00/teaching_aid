@@ -5,14 +5,15 @@ Run with: python3 main.py
 
 Starts both:
 1. FastAPI server on port 8000
-2. LiveKit agent for voice transcription
+2. LiveKit agent for voice interaction
 """
 
 import asyncio
 import os
 import sys
 import signal
-import subprocess
+import threading
+import multiprocessing
 from pathlib import Path
 
 # Add backend to path
@@ -22,6 +23,7 @@ sys.path.insert(0, str(BACKEND_DIR))
 # Load environment variables
 from dotenv import load_dotenv
 load_dotenv(BACKEND_DIR / ".env")
+
 
 def check_env():
     """Check required environment variables."""
@@ -60,23 +62,38 @@ def run_fastapi():
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
 
 
-def run_agent():
-    """Run LiveKit agent using LiveKit Agents CLI."""
-    print("\n[Agent] Starting LiveKit agent...")
+def run_agent_process():
+    """Run LiveKit agent in a separate process."""
+    # Import inside function to avoid issues with multiprocessing
+    import os
+    import sys
+    from pathlib import Path
 
-    agent_path = BACKEND_DIR / "agent" / "main.py"
+    # Setup paths
+    backend_dir = Path(__file__).parent
+    sys.path.insert(0, str(backend_dir))
 
-    env = os.environ.copy()
-    env["PYTHONPATH"] = str(BACKEND_DIR)
-    env["PYTHONUNBUFFERED"] = "1"
+    # Load env
+    from dotenv import load_dotenv
+    load_dotenv(backend_dir / ".env")
 
-    # Run agent with 'dev' mode - registers worker, LiveKit dispatches to rooms
-    proc = subprocess.Popen(
-        [sys.executable, "-u", str(agent_path), "dev"],
-        cwd=str(BACKEND_DIR),
-        env=env,
+    # Inject 'start' argument for the LiveKit CLI (not 'dev' which uses file watcher)
+    sys.argv = [sys.argv[0], 'start']
+
+    # Now import agent dependencies
+    from livekit import agents
+
+    # Import the agent module to get entrypoint
+    from agent.main import entrypoint
+
+    print("[Agent] Starting LiveKit agent worker...")
+
+    # Run the agent using WorkerOptions
+    agents.cli.run_app(
+        agents.WorkerOptions(
+            entrypoint_fnc=entrypoint,
+        )
     )
-    return proc
 
 
 def main():
@@ -89,28 +106,38 @@ def main():
 
     if not env_ok:
         print("[Warning] Starting without LiveKit agent (missing credentials)")
-        print("[Warning] Voice transcription will not work\n")
+        print("[Warning] Voice interaction will not work\n")
         run_fastapi()
         return
 
-    # Start agent in background
-    agent_proc = run_agent()
+    # Start agent in a separate process (not daemon so it can spawn children)
+    print("\n[Agent] Launching LiveKit agent process...")
+    agent_process = multiprocessing.Process(target=run_agent_process, args=())
+    agent_process.start()
+
+    print(f"[Agent] Agent process started (PID: {agent_process.pid})")
 
     # Handle shutdown
     def shutdown(sig, frame):
         print("\n[Shutdown] Stopping services...")
-        agent_proc.terminate()
+        if agent_process.is_alive():
+            agent_process.terminate()
+            agent_process.join(timeout=5)
         sys.exit(0)
 
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
-    # Run FastAPI in main thread (blocking)
+    # Run FastAPI in main process (blocking)
     try:
         run_fastapi()
     finally:
-        agent_proc.terminate()
+        if agent_process.is_alive():
+            agent_process.terminate()
+            agent_process.join(timeout=5)
 
 
 if __name__ == "__main__":
+    # Required for multiprocessing on macOS
+    multiprocessing.set_start_method('spawn', force=True)
     main()

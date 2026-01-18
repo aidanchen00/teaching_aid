@@ -4,19 +4,21 @@ Uses function tools to let the LLM control the knowledge graph via voice
 """
 
 import os
+import sys
 import json
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from the backend directory
+# This ensures .env is found even when running as a subprocess
+_backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_env_path = os.path.join(_backend_dir, '.env')
+load_dotenv(_env_path)
 
-import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from livekit import agents
-from livekit.agents import AgentSession, Agent, RoomInputOptions, AgentServer, JobContext, RunContext, function_tool
+from livekit.agents import AgentSession, Agent, RoomInputOptions, JobContext, RunContext, function_tool
 from livekit.plugins import silero, elevenlabs, google
-
 from agent.backend_client import generate_graph_from_topic, get_graph, create_session, expand_node
 
 
@@ -254,11 +256,6 @@ Do not use complex formatting, emojis, or special symbols. Speak naturally.""",
             return "Sorry, I couldn't go back to the graph."
 
 
-# Create the server
-server = AgentServer()
-
-
-@server.rtc_session()
 async def entrypoint(ctx: JobContext):
     """Main entrypoint for the agent."""
 
@@ -454,5 +451,9 @@ Keep it to 2-3 sentences max."""
 
 
 if __name__ == "__main__":
-    print("[Agent] Starting LiveKit Voice Agent with Knowledge Graph Control...")
-    agents.cli.run_app(server)
+    print("[Agent] Starting LiveKit Voice Agent with Knowledge Graph Control...", file=sys.stderr, flush=True)
+    agents.cli.run_app(
+        agents.WorkerOptions(
+            entrypoint_fnc=entrypoint,
+        )
+    )
