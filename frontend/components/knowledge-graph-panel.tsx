@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { GraphData, VizType } from '@/lib/types';
 import * as THREE from 'three';
@@ -90,7 +90,7 @@ export function KnowledgeGraphPanel({
   };
 
   // Get node color based on vizType or center status
-  const getNodeColor = (node: any): string => {
+  const getNodeColor = useCallback((node: any): string => {
     if (node.isCenter) {
       return '#6366f1'; // indigo for center
     }
@@ -98,17 +98,18 @@ export function KnowledgeGraphPanel({
       return VIZ_TYPE_COLORS[node.vizType as VizType];
     }
     return '#64748b'; // slate for default
-  };
+  }, []);
 
-  // Create custom node with label
-  const createNodeWithLabel = (node: any) => {
+  // Create custom node with label - memoized to prevent recreation
+  const createNodeWithLabel = useCallback((node: any) => {
     const group = new THREE.Group();
+    const color = getNodeColor(node);
 
     // Create sphere for the node
     const sphereGeometry = new THREE.SphereGeometry(node.isCenter ? 10 : 6, 32, 32);
     const sphereMaterial = new THREE.MeshLambertMaterial({
-      color: getNodeColor(node),
-      emissive: getNodeColor(node),
+      color: color,
+      emissive: color,
       emissiveIntensity: 0.3,
     });
     const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
@@ -147,25 +148,21 @@ export function KnowledgeGraphPanel({
     }
 
     return group;
-  };
+  }, [getNodeColor]);
 
-  // Generate a key that changes when graph structure changes (forces remount)
-  const graphKey = graph.nodes.map(n => n.id).sort().join(',');
-
-  // Format data for react-force-graph-3d
-  // Create clean copies to prevent circular reference issues
-  const graphData = {
+  // Memoize graph data to prevent unnecessary re-renders and flickering
+  const graphData = useMemo(() => ({
     nodes: graph.nodes.map((node, index) => {
       const isCenter = node.id === graph.centerId;
       const radius = 50;
       const angle = (index / graph.nodes.length) * 2 * Math.PI;
 
-      // Return clean object with only needed properties
       return {
         id: node.id,
         label: node.label,
         vizType: node.vizType,
         isCenter,
+        // Only set initial positions for new nodes, let physics handle the rest
         x: isCenter ? 0 : Math.cos(angle) * radius,
         y: isCenter ? 0 : Math.sin(angle) * radius,
         z: 0,
@@ -175,57 +172,59 @@ export function KnowledgeGraphPanel({
       source: link.source,
       target: link.target,
     })),
-  };
+  }), [graph.nodes, graph.links, graph.centerId]);
 
-  // Initialize camera immediately when graph is ready
+  // Track if we've done initial camera setup
+  const hasInitializedCamera = useRef(false);
+  const prevNodeCount = useRef(graph.nodes.length);
+
+  // Initialize camera once when 3D is ready
   useEffect(() => {
-    if (fgRef.current && is3DReady) {
+    if (fgRef.current && is3DReady && !hasInitializedCamera.current) {
+      hasInitializedCamera.current = true;
       console.log('[Graph] Initializing camera position');
-      // Set initial camera very close to nodes
+
+      // Set initial camera position
       try {
         fgRef.current.cameraPosition(
-          { x: 0, y: 0, z: 80 },      // Very close
-          { x: 0, y: 0, z: 0 },       // Look at origin
-          0                            // Instant
+          { x: 0, y: 0, z: 150 },
+          { x: 0, y: 0, z: 0 },
+          0
         );
-        
-        // Also zoom to fit
-        setTimeout(() => {
-          if (fgRef.current) {
-            fgRef.current.zoomToFit(1000, 50);
-          }
-        }, 500);
       } catch (e) {
         console.error('[Graph] Error setting initial camera:', e);
       }
-      
-      // Recenter after physics settle
-      const timer = setTimeout(() => {
-        console.log('[Graph] Recentering after stabilization');
-        recenterCamera();
-      }, 2500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [is3DReady]);
 
-  // Recenter when graph changes (new nodes added or center changes)
-  useEffect(() => {
-    if (fgRef.current && is3DReady) {
+      // Single recenter after physics settle
       const timer = setTimeout(() => {
-        recenterCamera();
+        if (fgRef.current) {
+          fgRef.current.zoomToFit(800, 60);
+        }
       }, 1500);
 
       return () => clearTimeout(timer);
     }
+  }, [is3DReady]);
+
+  // Only recenter when NEW nodes are added (not on every render)
+  useEffect(() => {
+    if (fgRef.current && is3DReady && graph.nodes.length > prevNodeCount.current) {
+      prevNodeCount.current = graph.nodes.length;
+
+      // Delay to let physics settle first
+      const timer = setTimeout(() => {
+        if (fgRef.current) {
+          fgRef.current.zoomToFit(800, 60);
+        }
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+    prevNodeCount.current = graph.nodes.length;
   }, [graph.nodes.length, is3DReady]);
 
   useEffect(() => {
-    console.log('[Graph] Component mounted, graph data:', {
-      nodeCount: graph.nodes.length,
-      linkCount: graph.links.length,
-      centerId: graph.centerId
-    });
+    console.log('[Graph] Component mounted');
     setIs3DReady(true);
   }, []);
 

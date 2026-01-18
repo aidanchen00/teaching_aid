@@ -5,6 +5,7 @@ __pycache__/
 *.so
 .Python
 venv/
+.venv/
 env/
 *.egg-info/
 .pytest_cache/
@@ -59,3 +60,6 @@ frontend/.next/
 frontend/node_modules/
 backend/venv/
 backend/__pycache__/
+
+# Exclude gitignore files in mvp
+mvp/**/.gitignore
