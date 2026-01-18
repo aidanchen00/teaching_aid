@@ -6,6 +6,7 @@ import { LessonOverlay } from './lesson-overlay';
 import { Chat } from './chat';
 import { AgentCommand } from '@/hooks/useAgentDataChannel';
 import { GraphNode, GraphData } from '@/lib/types';
+import { preloadCache } from '@/lib/preload-cache';
 
 type Mode = 'GRAPH' | 'VIZ';
 
@@ -31,6 +32,27 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
   useEffect(() => {
     graphRef.current = graph;
   }, [graph]);
+
+  // Preload visualizations when graph updates
+  useEffect(() => {
+    if (!graph || !sessionId) return;
+
+    // Preload all nodes in the current graph
+    // Prioritize nodes connected to the center
+    const centerNode = graph.nodes.find(n => n.id === graph.centerId);
+    const adjacentNodeIds = graph.links
+      .filter(link => link.source === graph.centerId || link.target === graph.centerId)
+      .map(link => link.source === graph.centerId ? link.target : link.source);
+
+    console.log('[LearningPanel] Starting preload for graph with', graph.nodes.length, 'nodes');
+    preloadCache.preloadNodes(graph.nodes, sessionId, adjacentNodeIds);
+
+    // Log cache stats after a short delay
+    setTimeout(() => {
+      const stats = preloadCache.getStats();
+      console.log('[LearningPanel] Preload cache stats:', stats);
+    }, 2000);
+  }, [graph, sessionId]);
 
   // Initialize session on mount
   useEffect(() => {
@@ -104,7 +126,7 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
     }
   };
 
-  const handleNodeClick = useCallback((nodeId: string) => {
+  const handleNodeClick = useCallback(async (nodeId: string) => {
     // Use ref to always get the latest graph, avoiding stale closure issues
     const currentGraph = graphRef.current;
     console.log('[LearningPanel] Node clicked:', nodeId, 'graph:', currentGraph, 'sessionId:', sessionId);
@@ -132,6 +154,53 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
           centerId: nodeId
         } : null);
       }, 0);
+
+      // EXPANSION LOGIC: Trigger expansion in background if node not expanded
+      // Create clean node data (strip any React/Three.js references from force graph)
+      const cleanNode = {
+        id: node.id,
+        label: node.label,
+        vizType: node.vizType,
+        // @ts-ignore - Node might have expansion fields from backend
+        expanded: node.expanded || false,
+        // @ts-ignore
+        depth: node.depth || 0,
+      };
+
+      if (!cleanNode.expanded && cleanNode.depth < 3 && sessionId) {
+        console.log('[LearningPanel] Triggering background expansion for', nodeId);
+        try {
+          // Call chat endpoint with expansion mode
+          const response = await fetch(`${BACKEND_URL}/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message: cleanNode.label,
+              sessionId: sessionId,
+              mode: 'expand',
+              parentNodeId: nodeId,
+            }),
+          });
+
+          if (response.ok) {
+            console.log('[LearningPanel] Expansion triggered, fetching updated graph');
+            // Fetch updated graph after expansion
+            const updatedGraph = await fetch(`${BACKEND_URL}/session/${sessionId}/graph`);
+            if (updatedGraph.ok) {
+              const newGraph = await updatedGraph.json();
+              console.log('[LearningPanel] Graph expanded, now has', newGraph.nodes.length, 'nodes');
+              // Update graph state (user will see new nodes when they go back to graph view)
+              setGraph(newGraph);
+              graphRef.current = newGraph;
+              // Preload new nodes
+              preloadCache.preloadNodes(newGraph.nodes, sessionId);
+            }
+          }
+        } catch (err) {
+          console.error('[LearningPanel] Error triggering expansion:', err);
+          // Continue showing visualization even if expansion fails
+        }
+      }
     } else {
       console.log('[LearningPanel] Node not found in graph.nodes:', currentGraph.nodes);
     }

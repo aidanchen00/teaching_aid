@@ -94,17 +94,32 @@ export function useAgentDataChannel() {
       return;
     }
 
+    // Create clean payload - only include serializable data
+    const cleanPayload: any = { action };
+    if (payload?.label) cleanPayload.label = payload.label;
+    if (payload?.data && typeof payload.data !== 'object') {
+      // Only include primitive data types
+      cleanPayload.data = payload.data;
+    }
+
     const message: AgentCommand = {
       type: 'command',
-      payload: {
-        action,
-        ...payload,
-      },
+      payload: cleanPayload,
     };
 
     try {
+      // Try to stringify to check for circular references
+      let jsonString: string;
+      try {
+        jsonString = JSON.stringify(message);
+      } catch (stringifyError) {
+        console.error('[Data Channel] Cannot serialize message - circular reference detected:', stringifyError);
+        console.error('[Data Channel] Problematic message:', message);
+        throw new Error('Cannot send message with circular references');
+      }
+
       const encoder = new TextEncoder();
-      const data = encoder.encode(JSON.stringify(message));
+      const data = encoder.encode(jsonString);
 
       // Send using reliable data channel
       room.localParticipant.publishData(data, {
@@ -114,6 +129,7 @@ export function useAgentDataChannel() {
       console.log('[Data Channel] Sent command to agent:', message);
     } catch (error) {
       console.error('[Data Channel] Failed to send message:', error);
+      throw error; // Re-throw to surface the error
     }
   };
 

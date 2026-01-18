@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { selectLesson, pollVizJob, VizJobResponse } from '@/lib/api';
 import { GraphNode, VizType } from '@/lib/types';
+import { preloadCache } from '@/lib/preload-cache';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
@@ -43,6 +44,28 @@ export function LessonOverlay({ node, sessionId, onBackToGraph }: LessonOverlayP
     const loadVisualization = async () => {
       try {
         console.log('[LessonOverlay] Selecting lesson for node:', node.id, 'label:', node.label, 'vizType:', vizType);
+
+        // CHECK PRELOAD CACHE FIRST for instant loading
+        const cached = preloadCache.get(node.id);
+        if (cached && cached.status === 'ready') {
+          console.log('[LessonOverlay] ⚡ INSTANT LOAD from preload cache!', cached.contentType);
+          setIsCached(true);
+          setLoading(false);
+
+          if (cached.contentType === 'video' && cached.videoUrl) {
+            setVizContentType('video');
+            setVideoUrl(`${BACKEND_URL}${cached.videoUrl}`);
+          } else if (cached.svgContent) {
+            setVizContentType('svg');
+            setSvgContent(cached.svgContent);
+          } else {
+            setError('No visualization content in cache');
+          }
+          return;
+        }
+
+        // FALLBACK: Normal loading flow if not cached
+        console.log('[LessonOverlay] Not in cache, loading normally');
 
         // Call lesson select endpoint (with fallback to direct endpoint if session not found)
         const response = await selectLesson(sessionId, node.id, node.label, vizType);

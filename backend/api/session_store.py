@@ -10,6 +10,9 @@ class GraphNode:
     id: str
     label: str
     vizType: Optional[str] = None  # "three" | "video" | "image"
+    expanded: bool = False  # Track if node has children
+    depth: int = 0  # Track depth in tree (0=root, 1=first level, etc)
+    parent_id: Optional[str] = None  # Track parent node ID
 
 @dataclass
 class GraphLink:
@@ -23,6 +26,7 @@ class Session:
     nodes: List[GraphNode] = field(default_factory=list)
     links: List[GraphLink] = field(default_factory=list)
     curriculum_context: Optional[Dict] = None  # Context from nexhacksv0
+    max_depth: int = 3  # Maximum depth for expansion (prevent infinite growth)
 
 # In-memory store
 sessions: Dict[str, Session] = {}
@@ -157,4 +161,70 @@ def get_node_viz_type(session_id: str, node_id: str) -> Optional[str]:
             return node.vizType
 
     return None
+
+
+def expand_node(
+    session_id: str,
+    parent_node_id: str,
+    child_nodes: List[dict],
+) -> Optional[Session]:
+    """
+    Expand a node by adding child nodes to it.
+
+    Args:
+        session_id: Session ID
+        parent_node_id: ID of node to expand
+        child_nodes: List of child node dicts with id, label, vizType
+
+    Returns:
+        Updated session or None if failed
+    """
+    session = sessions.get(session_id)
+    if not session:
+        print(f"[SessionStore] Session {session_id} not found")
+        return None
+
+    # Find parent node
+    parent = None
+    for node in session.nodes:
+        if node.id == parent_node_id:
+            parent = node
+            break
+
+    if not parent:
+        print(f"[SessionStore] Parent node {parent_node_id} not found")
+        return None
+
+    # Check if already expanded
+    if parent.expanded:
+        print(f"[SessionStore] Node {parent_node_id} already expanded, skipping")
+        return session
+
+    # Check max depth
+    if parent.depth >= session.max_depth:
+        print(f"[SessionStore] Max depth {session.max_depth} reached for {parent_node_id}")
+        return session
+
+    # Add child nodes
+    added_count = 0
+    for child_data in child_nodes:
+        child = GraphNode(
+            id=child_data["id"],
+            label=child_data["label"],
+            vizType=child_data.get("vizType", "image"),
+            expanded=False,
+            depth=parent.depth + 1,
+            parent_id=parent_node_id
+        )
+        session.nodes.append(child)
+
+        # Add link from parent to child
+        session.links.append(GraphLink(source=parent_node_id, target=child.id))
+        added_count += 1
+
+    # Mark parent as expanded
+    parent.expanded = True
+
+    print(f"[SessionStore] Expanded {parent_node_id} ({parent.label}) with {added_count} children at depth {parent.depth + 1}")
+    return session
 

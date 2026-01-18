@@ -17,7 +17,7 @@ from livekit import agents
 from livekit.agents import AgentSession, Agent, RoomInputOptions, AgentServer, JobContext, RunContext, function_tool
 from livekit.plugins import silero, elevenlabs, google
 
-from agent.backend_client import generate_graph_from_topic, get_graph, create_session
+from agent.backend_client import generate_graph_from_topic, get_graph, create_session, expand_node
 
 
 # Global state for the current session
@@ -146,6 +146,48 @@ Do not use complex formatting, emojis, or special symbols. Speak naturally.""",
             return f"Topic '{topic_label}' not found. Available topics: {', '.join(available)}"
 
         try:
+            # EXPANSION LOGIC: Check if node needs expansion
+            # If not already expanded and depth allows, trigger expansion in background
+            node_id = node.get("id")
+            node_expanded = node.get("expanded", False)
+            node_depth = node.get("depth", 0)
+
+            print(f"[Agent Tool] Node {node_id}: expanded={node_expanded}, depth={node_depth}")
+
+            if not node_expanded and node_depth < 3:
+                print(f"[Agent Tool] Triggering expansion for {node_id}")
+                try:
+                    # Expand the node (generates 3 children)
+                    expansion_result = await expand_node(
+                        _session_state["session_id"],
+                        node_id,
+                        node.get("label")
+                    )
+
+                    # Fetch updated graph from backend
+                    updated_graph = await get_graph(_session_state["session_id"])
+                    _session_state["current_graph"] = updated_graph
+
+                    print(f"[Agent Tool] Expansion complete, graph now has {len(updated_graph.get('nodes', []))} nodes")
+
+                    # Send updated graph to frontend
+                    ctx = agents.get_job_context()
+                    await ctx.room.local_participant.publish_data(
+                        json.dumps({
+                            "type": "command",
+                            "payload": {
+                                "action": "update_graph",
+                                "graph": updated_graph,
+                                "sessionId": _session_state["session_id"],
+                                "message": expansion_result.get("message", "")
+                            }
+                        }),
+                        reliable=True,
+                    )
+                except Exception as e:
+                    print(f"[Agent Tool] Error expanding node: {e}")
+                    # Continue with selection even if expansion fails
+
             # Send select command to frontend
             ctx = agents.get_job_context()
             await ctx.room.local_participant.publish_data(

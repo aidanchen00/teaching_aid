@@ -23,6 +23,9 @@ class GraphNodeResponse(BaseModel):
     id: str
     label: str
     vizType: Optional[str] = None
+    expanded: bool = False
+    depth: int = 0
+    parent_id: Optional[str] = None
 
 class GraphResponse(BaseModel):
     centerId: str
@@ -71,7 +74,14 @@ async def get_session_graph(session_id: str) -> GraphResponse:
     return GraphResponse(
         centerId=session.center_id,
         nodes=[
-            GraphNodeResponse(id=node.id, label=node.label, vizType=node.vizType)
+            GraphNodeResponse(
+                id=node.id,
+                label=node.label,
+                vizType=node.vizType,
+                expanded=node.expanded,
+                depth=node.depth,
+                parent_id=node.parent_id
+            )
             for node in session.nodes
         ],
         links=[{"source": link.source, "target": link.target} for link in session.links]
@@ -104,7 +114,14 @@ async def select_node(session_id: str, request: SelectNodeRequest) -> GraphRespo
     return GraphResponse(
         centerId=session.center_id,
         nodes=[
-            GraphNodeResponse(id=node.id, label=node.label, vizType=node.vizType)
+            GraphNodeResponse(
+                id=node.id,
+                label=node.label,
+                vizType=node.vizType,
+                expanded=node.expanded,
+                depth=node.depth,
+                parent_id=node.parent_id
+            )
             for node in session.nodes
         ],
         links=[{"source": link.source, "target": link.target} for link in session.links]
@@ -131,7 +148,14 @@ async def back_to_graph(session_id: str) -> GraphResponse:
     return GraphResponse(
         centerId=session.center_id,
         nodes=[
-            GraphNodeResponse(id=node.id, label=node.label, vizType=node.vizType)
+            GraphNodeResponse(
+                id=node.id,
+                label=node.label,
+                vizType=node.vizType,
+                expanded=node.expanded,
+                depth=node.depth,
+                parent_id=node.parent_id
+            )
             for node in session.nodes
         ],
         links=[{"source": link.source, "target": link.target} for link in session.links]

@@ -119,6 +119,51 @@ async def select_node(session_id: str, node_id: str) -> Dict:
             raise
 
 
+async def expand_node(session_id: str, parent_node_id: str, parent_label: str) -> Dict:
+    """
+    Expand a node by generating 3 child nodes.
+
+    Args:
+        session_id: Session ID
+        parent_node_id: ID of the node to expand
+        parent_label: Label of the parent node (used for AI generation)
+
+    Returns:
+        {
+            "message": "Brief explanation of children",
+            "nodes": [...],  # 3 new child nodes
+            "links": [],     # Links are created automatically on backend
+            "centerId": "parent_node_id"
+        }
+    """
+    backend_url = _get_backend_url()
+    url = f"{backend_url}/chat"
+
+    payload = {
+        "message": parent_label,
+        "sessionId": session_id,
+        "mode": "expand",
+        "parentNodeId": parent_node_id
+    }
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            response = await client.post(url, json=payload)
+            response.raise_for_status()
+
+            data = response.json()
+            print(f"[Backend] Expanded node {parent_node_id}: {len(data.get('nodes', []))} new children")
+            return data
+
+        except httpx.HTTPStatusError as e:
+            print(f"[Backend] HTTP error expanding node: {e.response.status_code}")
+            raise Exception(f"Failed to expand node: {e.response.status_code}")
+
+        except Exception as e:
+            print(f"[Backend] Error expanding node: {e}")
+            raise
+
+
 async def create_session() -> str:
     """
     Create a new learning session.

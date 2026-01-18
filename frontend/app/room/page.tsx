@@ -54,7 +54,10 @@ export default function RoomPage() {
     setError(null);
 
     try {
-      const roomName = session ? `learning-room-${session}` : 'learning-room';
+      // Ensure session is a string or undefined (not an event object)
+      const sessionId = typeof session === 'string' ? session : undefined;
+      const roomName = sessionId ? `learning-room-${sessionId}` : 'learning-room';
+
       const response = await fetch('/api/livekit/token', {
         method: 'POST',
         headers: {
@@ -63,7 +66,7 @@ export default function RoomPage() {
         body: JSON.stringify({
           roomName: roomName,
           participantName: 'Student',
-          sessionId: session || undefined,
+          sessionId: sessionId,
         }),
       });
 
@@ -116,7 +119,7 @@ export default function RoomPage() {
               </p>
 
               <button
-                onClick={handleJoinRoom}
+                onClick={() => handleJoinRoom()}
                 disabled={isConnecting}
                 className="group px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed transition-all shadow-xl hover:shadow-2xl hover:scale-105 transform inline-flex items-center gap-3"
               >
