@@ -24,7 +24,8 @@ from agent.backend_client import generate_graph_from_topic, get_graph, create_se
 _session_state = {
     "session_id": None,
     "current_graph": {"nodes": [], "links": [], "centerId": None},
-    "curriculum_context": None  # Context from nexhacksv0
+    "curriculum_context": None,  # Context from nexhacksv0
+    "curriculum_nodes": []  # Generated curriculum nodes with descriptions
 }
 
 
@@ -262,12 +263,26 @@ async def entrypoint(ctx: JobContext):
             _session_state["session_id"] = existing_session_id
             _session_state["current_graph"] = initial_graph
 
-            # Fetch curriculum context from session
+            # Fetch curriculum context and nodes from session
             from api.session_store import get_session as get_session_obj
             session_obj = get_session_obj(existing_session_id)
-            if session_obj and session_obj.curriculum_context:
-                _session_state["curriculum_context"] = session_obj.curriculum_context
-                print(f"[Agent] Loaded curriculum context: {session_obj.curriculum_context.get('title')}")
+            if session_obj:
+                if session_obj.curriculum_context:
+                    _session_state["curriculum_context"] = session_obj.curriculum_context
+                    print(f"[Agent] Loaded curriculum context: {session_obj.curriculum_context.get('title')}")
+                # Load curriculum nodes with descriptions for teaching
+                if session_obj.curriculum_nodes:
+                    _session_state["curriculum_nodes"] = [
+                        {
+                            "id": node.id,
+                            "label": node.label,
+                            "vizType": node.vizType,
+                            "description": node.description,
+                            "summary": node.summary
+                        }
+                        for node in session_obj.curriculum_nodes
+                    ]
+                    print(f"[Agent] Loaded {len(session_obj.curriculum_nodes)} curriculum nodes")
         else:
             # Create new session (manual start from teaching_aid)
             session_id = await create_session()
@@ -335,7 +350,18 @@ async def entrypoint(ctx: JobContext):
     curriculum_greeting = ""
     if _session_state["curriculum_context"]:
         curr = _session_state["curriculum_context"]
-        curriculum_greeting = f"I see you're studying {curr.get('title')} from {curr.get('school')}! "
+        course_name = curr.get("title", "this course")
+        school_name = curr.get("school", "")
+        curriculum_greeting = f"Welcome to {course_name}"
+        if school_name:
+            curriculum_greeting += f" from {school_name}"
+        curriculum_greeting += "! "
+
+        # Add topics hint if curriculum nodes available
+        if _session_state["curriculum_nodes"]:
+            topics = [n["label"] for n in _session_state["curriculum_nodes"][:3]]
+            if topics:
+                curriculum_greeting += f"We'll explore topics like {', '.join(topics)}. "
 
     # Send initial greeting
     await session.generate_reply(

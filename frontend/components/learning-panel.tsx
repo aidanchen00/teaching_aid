@@ -23,6 +23,7 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showMaterialsButton, setShowMaterialsButton] = useState(false);
 
   // Use refs to avoid stale closures in callbacks and effects
   const graphRef = useRef<GraphData | null>(null);
@@ -32,6 +33,27 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
   useEffect(() => {
     graphRef.current = graph;
   }, [graph]);
+
+  // Check if materials exist for this session
+  useEffect(() => {
+    if (!sessionId) return;
+
+    fetch(`${BACKEND_URL}/session/${sessionId}/opennote`)
+      .then(res => {
+        if (res.ok) {
+          setShowMaterialsButton(true);
+        }
+      })
+      .catch(() => {
+        setShowMaterialsButton(false);
+      });
+  }, [sessionId]);
+
+  const handleOpenMaterials = () => {
+    if (sessionId) {
+      window.location.href = `/breakout?session=${sessionId}`;
+    }
+  };
 
   // Preload visualizations when graph updates
   useEffect(() => {
@@ -362,6 +384,22 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
           sessionId={sessionId!}
           onBackToGraph={handleBackToGraph}
         />
+      )}
+
+      {/* Study Materials Button */}
+      {showMaterialsButton && mode === 'GRAPH' && (
+        <button
+          onClick={handleOpenMaterials}
+          className="absolute bottom-4 right-4 px-4 py-3 bg-indigo-600 hover:bg-indigo-700
+                     text-white rounded-lg shadow-lg flex items-center gap-2 z-50
+                     transition-all hover:scale-105"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+          Study Materials
+        </button>
       )}
     </div>
   );

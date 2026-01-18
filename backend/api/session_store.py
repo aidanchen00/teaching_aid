@@ -10,6 +10,8 @@ class GraphNode:
     id: str
     label: str
     vizType: Optional[str] = None  # "three" | "video" | "image"
+    description: Optional[str] = None  # For OpenNote - detailed topic description
+    summary: Optional[str] = None  # For agent - brief teaching context
     expanded: bool = False  # Track if node has children
     depth: int = 0  # Track depth in tree (0=root, 1=first level, etc)
     parent_id: Optional[str] = None  # Track parent node ID
@@ -26,6 +28,9 @@ class Session:
     nodes: List[GraphNode] = field(default_factory=list)
     links: List[GraphLink] = field(default_factory=list)
     curriculum_context: Optional[Dict] = None  # Context from nexhacksv0
+    curriculum_nodes: List[GraphNode] = field(default_factory=list)  # Generated curriculum for OpenNote
+    opennote_materials: Optional[Dict] = None  # OpenNote generated materials (notebook, flashcards, problems)
+    breakout_room_id: Optional[str] = None  # Breakout study room identifier
     max_depth: int = 3  # Maximum depth for expansion (prevent infinite growth)
 
 # In-memory store
@@ -131,7 +136,9 @@ def update_session_from_chat(
         GraphNode(
             id=n["id"],
             label=n["label"],
-            vizType=n.get("vizType")
+            vizType=n.get("vizType"),
+            description=n.get("description"),
+            summary=n.get("summary")
         )
         for n in nodes
     ]
@@ -227,4 +234,67 @@ def expand_node(
 
     print(f"[SessionStore] Expanded {parent_node_id} ({parent.label}) with {added_count} children at depth {parent.depth + 1}")
     return session
+
+
+def set_curriculum_nodes(session_id: str, nodes: List[GraphNode], links: List[GraphLink]) -> Optional[Session]:
+    """
+    Set the generated curriculum nodes for a session.
+    Also updates the main nodes/links for display.
+    """
+    session = sessions.get(session_id)
+    if not session:
+        return None
+
+    session.curriculum_nodes = nodes
+    session.nodes = nodes
+    session.links = links
+
+    # Set center to first node if available
+    if nodes:
+        session.center_id = nodes[0].id
+
+    print(f"[SessionStore] Set curriculum with {len(nodes)} nodes for session {session_id}")
+    return session
+
+
+def set_opennote_materials(session_id: str, materials: Dict) -> Optional[Session]:
+    """
+    Set OpenNote materials for a session.
+    Also creates a breakout room ID.
+    """
+    session = sessions.get(session_id)
+    if not session:
+        return None
+
+    session.opennote_materials = materials
+    session.breakout_room_id = f"breakout-{session_id}"
+
+    print(f"[SessionStore] Set OpenNote materials for session {session_id}")
+    return session
+
+
+def get_opennote_materials(session_id: str) -> Optional[Dict]:
+    """
+    Get OpenNote materials for a session.
+    """
+    session = sessions.get(session_id)
+    if not session:
+        return None
+
+    return session.opennote_materials
+
+
+def get_node_by_id(session_id: str, node_id: str) -> Optional[GraphNode]:
+    """
+    Get a node by its ID from a session.
+    """
+    session = sessions.get(session_id)
+    if not session:
+        return None
+
+    for node in session.nodes:
+        if node.id == node_id:
+            return node
+
+    return None
 
