@@ -49,6 +49,51 @@ LESSON_CONTENT = {
     },
 }
 
+class DirectLessonRequest(BaseModel):
+    nodeId: str
+    nodeLabel: str
+    vizType: str = "image"  # "three" | "video" | "image"
+
+
+@router.post("/lesson/direct")
+async def select_lesson_direct(request: DirectLessonRequest) -> SelectLessonResponse:
+    """
+    Select a lesson directly without needing a session.
+    Used when graph is controlled by voice agent.
+    """
+    node_id = request.nodeId
+    node_label = request.nodeLabel
+    viz_type = request.vizType
+
+    # Get lesson content or generate from label
+    lesson_content = LESSON_CONTENT.get(node_id, {
+        "title": node_label,
+        "summary": f"Learn about {node_label} and explore its key concepts."
+    })
+
+    lesson_id = str(uuid.uuid4())
+    viz_job_id = job_manager.create_job()
+
+    print(f"[Lesson] Direct lesson for {node_id} ({node_label}), vizType: {viz_type}")
+
+    job_manager.start_job(
+        viz_job_id,
+        generate_visualization_task,
+        topic=node_id,
+        lesson_title=lesson_content["title"],
+        summary=lesson_content["summary"],
+        viz_job_id=viz_job_id,
+        viz_type=viz_type
+    )
+
+    return SelectLessonResponse(
+        lessonId=lesson_id,
+        title=lesson_content["title"],
+        summary=lesson_content["summary"],
+        vizJobId=viz_job_id
+    )
+
+
 @router.post("/session/{session_id}/lesson/select")
 async def select_lesson(session_id: str, request: SelectLessonRequest) -> SelectLessonResponse:
     """

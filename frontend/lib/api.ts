@@ -32,20 +32,22 @@ export interface VizJobResponse {
 }
 
 /**
- * Select a lesson for a node and start visualization generation.
+ * Select a lesson directly without needing a session.
+ * Used when graph is controlled by voice agent.
  */
-export async function selectLesson(
-  sessionId: string,
-  nodeId: string
+export async function selectLessonDirect(
+  nodeId: string,
+  nodeLabel: string,
+  vizType: string = 'image'
 ): Promise<SelectLessonResponse> {
   const response = await fetch(
-    `${BACKEND_URL}/session/${sessionId}/lesson/select`,
+    `${BACKEND_URL}/lesson/direct`,
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ nodeId }),
+      body: JSON.stringify({ nodeId, nodeLabel, vizType }),
     }
   );
 
@@ -54,6 +56,50 @@ export async function selectLesson(
   }
 
   return response.json();
+}
+
+/**
+ * Select a lesson for a node and start visualization generation.
+ * Falls back to direct endpoint if session-based fails.
+ */
+export async function selectLesson(
+  sessionId: string,
+  nodeId: string,
+  nodeLabel?: string,
+  vizType?: string
+): Promise<SelectLessonResponse> {
+  // Try session-based first
+  try {
+    const response = await fetch(
+      `${BACKEND_URL}/session/${sessionId}/lesson/select`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ nodeId }),
+      }
+    );
+
+    if (response.ok) {
+      return response.json();
+    }
+
+    // If 404, fall back to direct endpoint
+    if (response.status === 404 && nodeLabel) {
+      console.log('[API] Session not found, using direct endpoint');
+      return selectLessonDirect(nodeId, nodeLabel, vizType || 'image');
+    }
+
+    throw new Error(`Failed to select lesson: ${response.statusText}`);
+  } catch (error: any) {
+    // If we have node info, try direct endpoint
+    if (nodeLabel) {
+      console.log('[API] Falling back to direct endpoint');
+      return selectLessonDirect(nodeId, nodeLabel, vizType || 'image');
+    }
+    throw error;
+  }
 }
 
 /**

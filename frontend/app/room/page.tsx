@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { VideoRoom } from '@/components/video-room';
 import { LearningPanel } from '@/components/learning-panel';
 import { AgentCommand } from '@/hooks/useAgentDataChannel';
@@ -13,6 +13,12 @@ export default function RoomPage() {
   const [lastCommand, setLastCommand] = useState<AgentCommand | null>(null);
 
   const wsUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || '';
+
+  // Wrap in useCallback to prevent unnecessary re-renders and effect re-runs
+  const handleCommandReceived = useCallback((command: AgentCommand) => {
+    console.log('[RoomPage] Command received:', command);
+    setLastCommand(command);
+  }, []);
 
   const handleJoinRoom = async () => {
     setIsConnecting(true);
@@ -44,11 +50,6 @@ export default function RoomPage() {
     } finally {
       setIsConnecting(false);
     }
-  };
-
-  const handleCommandReceived = (command: AgentCommand) => {
-    console.log('[RoomPage] Command received:', command);
-    setLastCommand(command);
   };
 
   return (

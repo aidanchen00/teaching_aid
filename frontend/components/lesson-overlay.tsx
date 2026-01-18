@@ -42,10 +42,10 @@ export function LessonOverlay({ node, sessionId, onBackToGraph }: LessonOverlayP
 
     const loadVisualization = async () => {
       try {
-        console.log('[LessonOverlay] Selecting lesson for node:', node.id);
+        console.log('[LessonOverlay] Selecting lesson for node:', node.id, 'label:', node.label, 'vizType:', vizType);
 
-        // Call lesson select endpoint
-        const response = await selectLesson(sessionId, node.id);
+        // Call lesson select endpoint (with fallback to direct endpoint if session not found)
+        const response = await selectLesson(sessionId, node.id, node.label, vizType);
 
         console.log('[LessonOverlay] Lesson selected, vizJobId:', response.vizJobId);
 
@@ -86,7 +86,7 @@ export function LessonOverlay({ node, sessionId, onBackToGraph }: LessonOverlayP
     };
 
     loadVisualization();
-  }, [node.id, sessionId]);
+  }, [node.id, node.label, vizType, sessionId]);
 
   const handleRetry = () => {
     setLoading(true);
@@ -96,7 +96,7 @@ export function LessonOverlay({ node, sessionId, onBackToGraph }: LessonOverlayP
 
     const loadVisualization = async () => {
       try {
-        const response = await selectLesson(sessionId, node.id);
+        const response = await selectLesson(sessionId, node.id, node.label, vizType);
         const vizResult = await pollVizJob(
           response.vizJobId,
           (stage) => setVizStage(stage)

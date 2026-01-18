@@ -15,54 +15,74 @@ def _get_model() -> genai.GenerativeModel:
         if not api_key:
             raise Exception("GOOGLE_API_KEY environment variable is not set")
         genai.configure(api_key=api_key)
-        _model = genai.GenerativeModel('gemini-1.5-flash')
+        _model = genai.GenerativeModel('gemini-2.0-flash')
     return _model
 
-SYSTEM_PROMPT = """You are a natural language understanding system for a learning application.
+SYSTEM_PROMPT = """You are a natural language understanding system for an educational learning application with an interactive knowledge graph.
 
 Your job is to map user speech transcripts into strict command JSON objects.
 
 Available commands:
-1. select_node_by_label - Navigate to a specific topic
-   Format: {{"action": "select_node_by_label", "label": "<exact_node_label>"}}
+1. explore_topic - User wants to learn about a NEW topic (generates a new knowledge graph)
+   Format: {{"action": "explore_topic", "topic": "<the topic they want to explore>"}}
+   Use when: User asks "what is X", "teach me X", "explain X", "I want to learn about X", or mentions a topic NOT in the current graph
 
-2. back_to_graph - Return to the main graph view
+2. select_node_by_label - Navigate to an EXISTING topic in the current graph
+   Format: {{"action": "select_node_by_label", "label": "<exact_node_label>"}}
+   Use when: User wants to see a topic that IS in the current available topics list
+
+3. back_to_graph - Return to the main graph view
    Format: {{"action": "back_to_graph"}}
 
-3. start_lesson - Begin a lesson on the current topic
+4. start_lesson - Begin a lesson/visualization on the current topic
    Format: {{"action": "start_lesson"}}
 
-4. end_lesson - End the current lesson
+5. end_lesson - End the current lesson
    Format: {{"action": "end_lesson"}}
 
-5. clarify - Ask for clarification (you will NOT publish this)
-   Format: {{"action": "clarify", "question": "What topic did you mean?"}}
+6. conversation - General conversation, greeting, or unclear intent (agent will respond naturally)
+   Format: {{"action": "conversation"}}
 
-Current available topics (node labels):
+Current available topics in the knowledge graph (node labels):
 {node_labels}
 
-Rules:
-- ONLY output JSON, nothing else
-- Match node labels exactly from the provided list
-- If the user mentions a topic, use select_node_by_label
-- If you can't find an exact match or are unsure, use clarify
-- Keywords: "go to", "show me", "learn about" → select_node_by_label
+CRITICAL Rules:
+- ONLY output valid JSON, nothing else
+- If user asks about a topic NOT in the current graph → use explore_topic
+- If user asks about a topic that IS in the current graph → use select_node_by_label
+- Match node labels EXACTLY from the provided list for select_node_by_label
+- Keywords: "what is", "teach me", "explain", "learn about" + NEW topic → explore_topic
+- Keywords: "show me", "go to", "select" + EXISTING topic → select_node_by_label
 - Keywords: "back", "return", "go back" → back_to_graph
-- Keywords: "start", "begin", "let's learn" → start_lesson
-- Keywords: "stop", "end", "finish" → end_lesson
+- Keywords: "start", "begin", "let's learn", "show visualization" → start_lesson
+- Keywords: "stop", "end", "finish", "done" → end_lesson
+- Greetings, thanks, unclear requests → conversation
 
 Examples:
+User: "What is calculus?"
+Available topics: Three.js, Manim, Nano Banana Pro
+Output: {{"action": "explore_topic", "topic": "calculus"}}
+
+User: "Teach me about machine learning"
+Available topics: Calculus, Derivatives, Integrals
+Output: {{"action": "explore_topic", "topic": "machine learning"}}
+
 User: "Show me derivatives"
+Available topics: Calculus, Derivatives, Integrals, Limits
 Output: {{"action": "select_node_by_label", "label": "Derivatives"}}
+
+User: "I want to learn about integrals"
+Available topics: Calculus, Derivatives, Integrals, Limits
+Output: {{"action": "select_node_by_label", "label": "Integrals"}}
 
 User: "Go back to the graph"
 Output: {{"action": "back_to_graph"}}
 
-User: "Let's start the lesson"
+User: "Start the lesson"
 Output: {{"action": "start_lesson"}}
 
-User: "What is calculus?"
-Output: {{"action": "clarify", "question": "Did you want to learn about a specific topic? Available topics are: Derivatives, Integrals, Limits"}}
+User: "Hello, how are you?"
+Output: {{"action": "conversation"}}
 """
 
 async def map_transcript_to_command(transcript: str, node_labels: List[str]) -> Dict:
