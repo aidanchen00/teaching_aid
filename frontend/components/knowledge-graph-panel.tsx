@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { GraphData, VizType } from '@/lib/types';
 
@@ -79,9 +79,15 @@ export function KnowledgeGraphPanel({
     return '#64748b'; // slate for default
   };
 
-  // Format data for react-force-graph-3d
+  // Generate a key for the graph to force remount when structure changes
+  const graphKey = useMemo(() =>
+    graph.nodes.map(n => n.id).sort().join(','),
+    [graph.nodes]
+  );
+
+  // Format data for react-force-graph-3d - memoized to prevent unnecessary re-renders
   // Give initial positions spread out, but let them float freely
-  const graphData = {
+  const graphData = useMemo(() => ({
     nodes: graph.nodes.map((node, index) => {
       const isCenter = node.id === graph.centerId;
       // Start nodes spread out in a circle
@@ -103,7 +109,7 @@ export function KnowledgeGraphPanel({
       source: link.source,
       target: link.target,
     })),
-  };
+  }), [graph.nodes, graph.links, graph.centerId]);
 
   // Initialize camera immediately when graph is ready
   useEffect(() => {
@@ -162,6 +168,7 @@ export function KnowledgeGraphPanel({
       <div ref={containerRef} className="h-full w-full bg-slate-950 relative">
         {is3DReady && dimensions.width > 0 && dimensions.height > 0 && (
           <ForceGraph3D
+            key={graphKey}
             ref={fgRef}
             graphData={graphData}
             width={dimensions.width}

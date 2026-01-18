@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@context7/mcp-server"],
+      "env": {
+        "CONTEXT7_API_KEY": "yctx7sk-3ecaced2-1ae1-4918-a9b4-7e02e73a33f3"
+      }
+    }
+  }
+}

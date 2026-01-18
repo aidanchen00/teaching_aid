@@ -5,6 +5,7 @@ Uses function tools to let the LLM control the knowledge graph via voice
 
 import os
 import json
+import asyncio
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -15,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from livekit import agents
 from livekit.agents import AgentSession, Agent, RoomInputOptions, AgentServer, JobContext, RunContext, function_tool
-from livekit.plugins import silero, elevenlabs, google
+from livekit.plugins import silero, elevenlabs, google, simli
 
 from agent.backend_client import generate_graph_from_topic, get_graph, create_session
 
@@ -234,32 +235,42 @@ async def entrypoint(ctx: JobContext):
     # Create or fetch learning session
     try:
         if existing_session_id:
-            # Fetch existing session (created by nexhacksv0)
+            # Try to fetch existing session (created by nexhacksv0)
             print(f"[Agent] Fetching existing session: {existing_session_id}")
-            initial_graph = await get_graph(existing_session_id)
-            _session_state["session_id"] = existing_session_id
-            _session_state["current_graph"] = initial_graph
+            try:
+                initial_graph = await get_graph(existing_session_id)
+                _session_state["session_id"] = existing_session_id
+                _session_state["current_graph"] = initial_graph
 
-            # Fetch curriculum context and nodes from session
-            from api.session_store import get_session as get_session_obj
-            session_obj = get_session_obj(existing_session_id)
-            if session_obj:
-                if session_obj.curriculum_context:
-                    _session_state["curriculum_context"] = session_obj.curriculum_context
-                    print(f"[Agent] Loaded curriculum context: {session_obj.curriculum_context.get('title')}")
-                # Load curriculum nodes with descriptions for teaching
-                if session_obj.curriculum_nodes:
-                    _session_state["curriculum_nodes"] = [
-                        {
-                            "id": node.id,
-                            "label": node.label,
-                            "vizType": node.vizType,
-                            "description": node.description,
-                            "summary": node.summary
-                        }
-                        for node in session_obj.curriculum_nodes
-                    ]
-                    print(f"[Agent] Loaded {len(session_obj.curriculum_nodes)} curriculum nodes")
+                # Fetch curriculum context and nodes from session
+                from api.session_store import get_session as get_session_obj
+                session_obj = get_session_obj(existing_session_id)
+                if session_obj:
+                    if session_obj.curriculum_context:
+                        _session_state["curriculum_context"] = session_obj.curriculum_context
+                        print(f"[Agent] Loaded curriculum context: {session_obj.curriculum_context.get('title')}")
+                    # Load curriculum nodes with descriptions for teaching
+                    if session_obj.curriculum_nodes:
+                        _session_state["curriculum_nodes"] = [
+                            {
+                                "id": node.id,
+                                "label": node.label,
+                                "vizType": node.vizType,
+                                "description": node.description,
+                                "summary": node.summary
+                            }
+                            for node in session_obj.curriculum_nodes
+                        ]
+                        print(f"[Agent] Loaded {len(session_obj.curriculum_nodes)} curriculum nodes")
+            except Exception as fetch_error:
+                # Session not found (404) or other error - create a new session as fallback
+                print(f"[Agent] Could not fetch existing session: {fetch_error}")
+                print(f"[Agent] Creating new session as fallback...")
+                session_id = await create_session()
+                initial_graph = await get_graph(session_id)
+                _session_state["session_id"] = session_id
+                _session_state["current_graph"] = initial_graph
+                print(f"[Agent] Created fallback session {session_id} with {len(initial_graph.get('nodes', []))} nodes")
         else:
             # Create new session (manual start from teaching_aid)
             session_id = await create_session()
@@ -271,11 +282,51 @@ async def entrypoint(ctx: JobContext):
         print(f"[Agent] Failed to create/fetch session: {e}")
         import traceback
         traceback.print_exc()
+        # Create minimal session state to prevent further errors
+        _session_state["session_id"] = None
+        _session_state["current_graph"] = {"nodes": [], "links": [], "centerId": None}
+        print(f"[Agent] Continuing with empty session state")
+
+    # Track if we created a fallback session (to notify frontend)
+    created_fallback_session = existing_session_id and _session_state["session_id"] != existing_session_id
 
     # Connect to the room
     await ctx.connect()
 
     print(f"[Agent] Connected to room: {ctx.room.name}")
+
+    # If we created a fallback session, notify the frontend of the new session ID
+    if created_fallback_session and _session_state["session_id"]:
+        print(f"[Agent] Notifying frontend of new session ID: {_session_state['session_id']}")
+        await ctx.room.local_participant.publish_data(
+            json.dumps({
+                "type": "command",
+                "payload": {
+                    "action": "session_updated",
+                    "sessionId": _session_state["session_id"],
+                    "reason": "fallback_session_created"
+                }
+            }),
+            reliable=True,
+        )
+
+    # Initialize Simli avatar using official LiveKit plugin
+    avatar = None
+    try:
+        print("[Agent] Initializing Simli avatar...")
+        simli_config = simli.SimliConfig(
+            api_key=os.getenv("SIMLI_API_KEY"),
+            face_id=os.getenv("SIMLI_FACE_ID"),
+            max_session_length=600,  # 10 minutes
+            max_idle_time=60,  # 1 minute
+        )
+        avatar = simli.AvatarSession(simli_config=simli_config)
+        print("[Agent] Simli avatar configured")
+    except Exception as e:
+        print(f"[Agent] Warning: Failed to configure Simli avatar: {e}")
+        print("[Agent] Will run in audio-only mode")
+        import traceback
+        traceback.print_exc()
 
     # Create the agent session with STT, LLM, and TTS
     session = AgentSession(
@@ -308,6 +359,18 @@ async def entrypoint(ctx: JobContext):
     # Store session reference for auto-teaching
     _session_state["agent_session"] = session
 
+    # Start Simli avatar if configured (must be started before session.start)
+    if avatar:
+        try:
+            print("[Agent] Starting Simli avatar...")
+            await avatar.start(session, room=ctx.room)
+            print("[Agent] Simli avatar started and joined room")
+        except Exception as e:
+            print(f"[Agent] Warning: Failed to start Simli avatar: {e}")
+            import traceback
+            traceback.print_exc()
+            avatar = None
+
     # Start the session with our tutor agent
     await session.start(
         room=ctx.room,
@@ -320,8 +383,36 @@ async def entrypoint(ctx: JobContext):
     print("[Agent] Session started, listening for speech...")
 
     # Add data channel listener for node selection (auto-teaching)
+    async def handle_node_selected(node_data: dict):
+        """Handle node selection asynchronously."""
+        description = node_data.get("description") or f"the topic of {node_data['label']}"
+        viz_type = node_data.get("vizType", "image")
+
+        viz_hint = ""
+        if viz_type == "three":
+            viz_hint = "A 3D visualization is now showing."
+        elif viz_type == "video":
+            viz_hint = "An animated visualization is now playing."
+        else:
+            viz_hint = "A diagram is now displayed."
+
+        agent_session = _session_state.get("agent_session")
+        if agent_session:
+            await agent_session.generate_reply(
+                instructions=f"""The student clicked on "{node_data['label']}" in the knowledge graph.
+
+Topic description: {description}
+{viz_hint}
+
+Start teaching about this topic immediately! Give a brief, engaging introduction (2-3 sentences).
+Explain what they're seeing in the visualization and what they'll learn.
+Be enthusiastic but concise. End by asking if they have questions or want to go deeper."""
+            )
+        else:
+            print("[Agent] Warning: No agent session available for auto-teaching")
+
     @ctx.room.on("data_received")
-    async def on_data_received(data: bytes, participant=None, kind=None, topic=None):
+    def on_data_received(data: bytes, participant=None, kind=None, topic=None):
         """Handle incoming data from frontend (node selection events)."""
         try:
             message = json.loads(data.decode())
@@ -343,33 +434,8 @@ async def entrypoint(ctx: JobContext):
 
                     print(f"[Agent] Node selected: {node_data['label']}")
 
-                    # Generate auto-teaching response
-                    description = node_data.get("description") or f"the topic of {node_data['label']}"
-                    viz_type = node_data.get("vizType", "image")
-
-                    viz_hint = ""
-                    if viz_type == "three":
-                        viz_hint = "A 3D visualization is now showing."
-                    elif viz_type == "video":
-                        viz_hint = "An animated visualization is now playing."
-                    else:
-                        viz_hint = "A diagram is now displayed."
-
-                    # Use the stored session to generate a teaching response
-                    agent_session = _session_state.get("agent_session")
-                    if agent_session:
-                        await agent_session.generate_reply(
-                            instructions=f"""The student clicked on "{node_data['label']}" in the knowledge graph.
-
-Topic description: {description}
-{viz_hint}
-
-Start teaching about this topic immediately! Give a brief, engaging introduction (2-3 sentences).
-Explain what they're seeing in the visualization and what they'll learn.
-Be enthusiastic but concise. End by asking if they have questions or want to go deeper."""
-                        )
-                    else:
-                        print("[Agent] Warning: No agent session available for auto-teaching")
+                    # Use asyncio.create_task for the async handler
+                    asyncio.create_task(handle_node_selected(node_data))
 
         except json.JSONDecodeError as e:
             print(f"[Agent] Failed to parse data message: {e}")
@@ -398,6 +464,21 @@ Ask what they'd like to learn about today.
 Mention they can ask about ANY topic and you'll create a knowledge graph for them.
 Keep it to 2-3 sentences max."""
     )
+
+    # Add cleanup handler for when room disconnects
+    async def cleanup():
+        """Cleanup resources."""
+        print("[Agent] Room disconnected, cleaning up...")
+        if avatar:
+            try:
+                await avatar.aclose()
+            except Exception as e:
+                print(f"[Agent] Error closing avatar: {e}")
+        print("[Agent] Cleanup complete")
+
+    @ctx.room.on("disconnected")
+    def on_disconnected():
+        asyncio.create_task(cleanup())
 
 
 if __name__ == "__main__":

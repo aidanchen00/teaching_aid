@@ -22,7 +22,7 @@ interface VideoRoomContentProps {
   onSendCommandReady?: (sendCommand: (action: string, payload?: any) => void) => void;
 }
 
-function RoomContent({ onCommandReceived, onSendCommandReady, sessionId }: {
+function RoomContent({ onCommandReceived, onSendCommandReady, sessionId: initialSessionId }: {
   onCommandReceived?: (command: any) => void;
   onSendCommandReady?: (sendCommand: (action: string, payload?: any) => void) => void;
   sessionId?: string;
@@ -30,6 +30,9 @@ function RoomContent({ onCommandReceived, onSendCommandReady, sessionId }: {
   const room = useRoomContext();
   const participants = useParticipants();
   const { sendCommand, lastCommand } = useAgentDataChannel();
+
+  // Track current session ID (may be updated by agent if fallback session created)
+  const [currentSessionId, setCurrentSessionId] = useState<string | undefined>(initialSessionId);
 
   // Expose sendCommand to parent when ready
   useEffect(() => {
@@ -42,19 +45,37 @@ function RoomContent({ onCommandReceived, onSendCommandReady, sessionId }: {
   const [showRetryButton, setShowRetryButton] = useState(false);
   const [hasOpenNoteMaterials, setHasOpenNoteMaterials] = useState(false);
 
+  // Handle session_updated command from agent (when fallback session is created)
+  useEffect(() => {
+    if (lastCommand?.payload?.action === 'session_updated' && lastCommand.payload.sessionId) {
+      const newSessionId = lastCommand.payload.sessionId;
+      console.log('[VideoRoom] Session updated by agent:', newSessionId, 'reason:', lastCommand.payload.reason);
+      setCurrentSessionId(newSessionId);
+
+      // Update URL without reload so user can bookmark/share the correct session
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('session', newSessionId);
+      window.history.replaceState({}, '', newUrl.toString());
+    }
+  }, [lastCommand]);
+
   // Check if session has OpenNote materials
   useEffect(() => {
-    if (sessionId) {
-      fetch(`${BACKEND_URL}/session/${sessionId}/opennote`)
+    if (currentSessionId) {
+      fetch(`${BACKEND_URL}/session/${currentSessionId}/opennote`)
         .then(res => {
           if (res.ok) {
             setHasOpenNoteMaterials(true);
             console.log('[VideoRoom] OpenNote materials available');
+          } else {
+            setHasOpenNoteMaterials(false);
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          setHasOpenNoteMaterials(false);
+        });
     }
-  }, [sessionId]);
+  }, [currentSessionId]);
 
   // Sort participants: local user first, then others
   const sortedParticipants = [...participants].sort((a, b) => {
@@ -125,8 +146,8 @@ function RoomContent({ onCommandReceived, onSendCommandReady, sessionId }: {
   };
 
   const handleJoinBreakout = () => {
-    if (sessionId) {
-      window.location.href = `/breakout?session=${sessionId}`;
+    if (currentSessionId) {
+      window.location.href = `/breakout?session=${currentSessionId}`;
     }
   };
 
