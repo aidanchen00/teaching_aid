@@ -482,7 +482,11 @@ function Research({ curriculum }) {
       <div className="model-metadata">
         <span className="metadata-text">
           Model: {researchData.model_metadata?.model_id || 'N/A'} •
-          All numeric conclusions powered by Woodwide AI
+          {researchData.model_metadata?.using_real_ai ? (
+            <span className="real-ai-badge" title="Using real Wood Wide AI predictions">🟢 Real AI Predictions</span>
+          ) : (
+            <span>Mock Data (API unavailable)</span>
+          )}
         </span>
       </div>
     </div>

@@ -1,8 +1,9 @@
 import axios from 'axios';
 
+// Next.js API routes are served from the same origin
 const API_BASE_URL = typeof window !== 'undefined'
-  ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001')
-  : 'http://localhost:3001';
+  ? '' // Empty string means same origin
+  : '';
 
 /**
  * Frontend service for curriculum research using Woodwide AI
