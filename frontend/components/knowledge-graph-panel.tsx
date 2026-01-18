@@ -56,9 +56,9 @@ export function KnowledgeGraphPanel({
     if (fgRef.current) {
       try {
         console.log('[Graph] Recentering camera to origin');
-        // Position camera directly in front, looking at origin
+        // Position camera very close to nodes
         fgRef.current.cameraPosition(
-          { x: 0, y: 0, z: 250 },     // Camera straight ahead
+          { x: 0, y: 0, z: 80 },      // Even closer
           { x: 0, y: 0, z: 0 },       // Look at origin (center)
           1500                         // Duration
         );
@@ -80,17 +80,25 @@ export function KnowledgeGraphPanel({
   };
 
   // Format data for react-force-graph-3d
+  // Give initial positions spread out, but let them float freely
   const graphData = {
-    nodes: graph.nodes.map(node => ({
-      id: node.id,
-      label: node.label,
-      vizType: node.vizType,
-      isCenter: node.id === graph.centerId,
-      // Fix center node at origin
-      fx: node.id === graph.centerId ? 0 : undefined,
-      fy: node.id === graph.centerId ? 0 : undefined,
-      fz: node.id === graph.centerId ? 0 : undefined,
-    })),
+    nodes: graph.nodes.map((node, index) => {
+      const isCenter = node.id === graph.centerId;
+      // Start nodes spread out in a circle
+      const radius = 50;
+      const angle = (index / graph.nodes.length) * 2 * Math.PI;
+
+      return {
+        id: node.id,
+        label: node.label,
+        vizType: node.vizType,
+        isCenter,
+        // Initial positions (not fixed - nodes can move)
+        x: isCenter ? 0 : Math.cos(angle) * radius,
+        y: isCenter ? 0 : Math.sin(angle) * radius,
+        z: 0,
+      };
+    }),
     links: graph.links.map(link => ({
       source: link.source,
       target: link.target,
@@ -101,10 +109,10 @@ export function KnowledgeGraphPanel({
   useEffect(() => {
     if (fgRef.current && is3DReady) {
       console.log('[Graph] Initializing camera position');
-      // Set initial camera position immediately - straight ahead
+      // Set initial camera very close to nodes
       try {
         fgRef.current.cameraPosition(
-          { x: 0, y: 0, z: 250 },     // Straight ahead
+          { x: 0, y: 0, z: 80 },      // Very close
           { x: 0, y: 0, z: 0 },       // Look at origin
           0                            // Instant
         );
@@ -167,6 +175,16 @@ export function KnowledgeGraphPanel({
             linkColor={() => '#475569'}
             linkWidth={2}
             linkOpacity={0.6}
+            linkDirectionalParticles={0}
+            // Spread unconnected nodes apart using strong repulsion
+            d3Force={(d3ForceInstance: any) => {
+              // Link distance for when there ARE links
+              d3ForceInstance('link')?.distance(150).strength(1);
+              // STRONG repulsion to push unconnected nodes apart
+              d3ForceInstance('charge')?.strength(-2000).distanceMin(50);
+              // Weak center
+              d3ForceInstance('center')?.strength(0.01);
+            }}
             onNodeClick={(node: any) => {
               console.log('[Graph] Node clicked:', node.id);
               onNodeClick(node.id);
@@ -180,12 +198,12 @@ export function KnowledgeGraphPanel({
             }}
             backgroundColor="#020617"
             showNavInfo={false}
-            enableNodeDrag={false}
+            enableNodeDrag={true}
             enableNavigationControls={true}
-            warmupTicks={100}
-            cooldownTicks={0}
-            d3AlphaDecay={0.05}
-            d3VelocityDecay={0.4}
+            warmupTicks={200}
+            cooldownTicks={50}
+            d3AlphaDecay={0.01}
+            d3VelocityDecay={0.2}
             onEngineStop={() => {
               // Recenter camera when physics simulation stops
               console.log('[Graph] Physics engine stopped, recentering camera');
