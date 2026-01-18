@@ -2,28 +2,19 @@
 
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { Card } from '@/components/ui/card';
+import { GraphData, VizType } from '@/lib/types';
 
 // Dynamically import ForceGraph3D to avoid SSR issues
 const ForceGraph3D = dynamic(() => import('react-force-graph-3d'), {
   ssr: false,
 });
 
-interface GraphNode {
-  id: string;
-  label: string;
-}
-
-interface GraphLink {
-  source: string;
-  target: string;
-}
-
-interface GraphData {
-  centerId: string;
-  nodes: GraphNode[];
-  links: GraphLink[];
-}
+// Colors for vizType indicators
+const VIZ_TYPE_COLORS: Record<VizType, string> = {
+  three: '#6366f1',  // indigo - Interactive 3D
+  video: '#10b981',  // emerald - Animation
+  image: '#f59e0b',  // amber - Diagram
+};
 
 interface KnowledgeGraphPanelProps {
   graph: GraphData;
@@ -77,11 +68,23 @@ export function KnowledgeGraphPanel({
     }
   };
 
+  // Get node color based on vizType or center status
+  const getNodeColor = (node: any): string => {
+    if (node.isCenter) {
+      return '#6366f1'; // indigo for center
+    }
+    if (node.vizType && VIZ_TYPE_COLORS[node.vizType as VizType]) {
+      return VIZ_TYPE_COLORS[node.vizType as VizType];
+    }
+    return '#64748b'; // slate for default
+  };
+
   // Format data for react-force-graph-3d
   const graphData = {
     nodes: graph.nodes.map(node => ({
       id: node.id,
       label: node.label,
+      vizType: node.vizType,
       isCenter: node.id === graph.centerId,
       // Fix center node at origin
       fx: node.id === graph.centerId ? 0 : undefined,
@@ -156,9 +159,9 @@ export function KnowledgeGraphPanel({
             width={dimensions.width}
             height={dimensions.height}
             nodeLabel="label"
-            nodeAutoColorBy="isCenter"
+            nodeAutoColorBy={undefined}
             nodeVal={(node: any) => node.isCenter ? 15 : 8}
-            nodeColor={(node: any) => node.isCenter ? '#6366f1' : '#64748b'}
+            nodeColor={getNodeColor}
             nodeOpacity={1.0}
             nodeRelSize={6}
             linkColor={() => '#475569'}
@@ -196,9 +199,24 @@ export function KnowledgeGraphPanel({
         
         {/* Overlay instructions and controls */}
         <div className="absolute bottom-4 left-4 bg-slate-900/80 backdrop-blur-sm border border-slate-700 rounded-lg px-4 py-2">
-          <p className="text-xs text-slate-300">
+          <p className="text-xs text-slate-300 mb-2">
             Click a node to learn • Drag to rotate • Scroll to zoom
           </p>
+          {/* vizType legend */}
+          <div className="flex gap-3 text-xs">
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+              <span className="text-slate-400">3D</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span className="text-slate-400">Animation</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+              <span className="text-slate-400">Diagram</span>
+            </span>
+          </div>
         </div>
         
         {/* Recenter button */}

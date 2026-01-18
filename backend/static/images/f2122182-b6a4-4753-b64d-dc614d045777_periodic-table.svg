@@ -1,0 +1,35 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="600" fill="#0f172a"/>
+
+  <text x="400" y="50" text-anchor="middle" font-size="24" fill="white" font-family="Arial, sans-serif">The Periodic Table</text>
+  <text x="400" y="75" text-anchor="middle" font-size="14" fill="white" font-family="Arial, sans-serif">Elements, Trends, and Applications</text>
+
+  <rect x="50" y="100" width="700" height="400" fill="#1e293b" rx="10"/>
+
+  <text x="75" y="130" font-size="16" fill="white" font-family="Arial, sans-serif">Key Concepts:</text>
+
+  <line x1="75" y1="140" x2="725" y2="140" stroke="#6366f1" stroke-width="1"/>
+
+  <text x="90" y="165" font-size="14" fill="white" font-family="Arial, sans-serif">1. Atomic Number (Z): Number of protons</text>
+  <text x="90" y="190" font-size="14" fill="white" font-family="Arial, sans-serif">2. Atomic Mass (A): Average mass of atoms</text>
+  <text x="90" y="215" font-size="14" fill="white" font-family="Arial, sans-serif">3. Electron Configuration: Arrangement of electrons</text>
+
+  <text x="75" y="250" font-size="16" fill="white" font-family="Arial, sans-serif">Periodic Trends:</text>
+  <line x1="75" y1="260" x2="725" y2="260" stroke="#6366f1" stroke-width="1"/>
+
+  <text x="90" y="285" font-size="14" fill="white" font-family="Arial, sans-serif">1. Electronegativity: Increases -> and up</text>
+  <text x="90" y="310" font-size="14" fill="white" font-family="Arial, sans-serif">2. Ionization Energy: Increases -> and up</text>
+  <text x="90" y="335" font-size="14" fill="white" font-family="Arial, sans-serif">3. Atomic Radius: Increases &lt;- and down</text>
+
+  <text x="75" y="370" font-size="16" fill="white" font-family="Arial, sans-serif">Applications:</text>
+  <line x1="75" y1="380" x2="725" y2="380" stroke="#6366f1" stroke-width="1"/>
+
+  <text x="90" y="405" font-size="14" fill="white" font-family="Arial, sans-serif">1. Material Science: Designing new materials</text>
+  <text x="90" y="430" font-size="14" fill="white" font-family="Arial, sans-serif">2. Chemistry: Predicting reaction outcomes</text>
+  <text x="90" y="455" font-size="14" fill="white" font-family="Arial, sans-serif">3. Biology: Understanding enzyme function</text>
+
+  <rect x="50" y="510" width="700" height="70" fill="#334155" rx="10"/>
+
+  <text x="400" y="535" text-anchor="middle" font-size="14" fill="white" font-family="Arial, sans-serif">Example: Group 1 (Alkali Metals)</text>
+  <text x="400" y="560" text-anchor="middle" font-size="12" fill="white" font-family="Arial, sans-serif">Li, Na, K, Rb, Cs - Highly Reactive, Form +1 ions</text>
+</svg>

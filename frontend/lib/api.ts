@@ -1,6 +1,7 @@
 /**
  * API client functions for lesson and visualization endpoints.
  */
+import { GraphData, GraphNode, GraphLink, VizType } from './types';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
@@ -11,13 +12,21 @@ export interface SelectLessonResponse {
   vizJobId: string;
 }
 
+export interface ChatResponse {
+  message: string;
+  nodes: GraphNode[];
+  links: GraphLink[];
+  centerId: string;
+}
+
 export interface VizJobResponse {
   status: 'pending' | 'running' | 'done' | 'error';
   stage?: string;
   viz?: {
-    type: 'three_spec' | 'manim_mp4' | 'image';
-    spec?: any;
-    url?: string;
+    type: 'svg' | 'video';
+    svgContent?: string;
+    videoUrl?: string;
+    cached?: boolean;
   };
   message?: string;
 }
@@ -90,5 +99,24 @@ export async function pollVizJob(
 
   // Timeout
   throw new Error('Visualization generation timed out');
+}
+
+/**
+ * Generate a knowledge graph from a user query using AI.
+ */
+export async function generateGraphFromChat(message: string): Promise<ChatResponse> {
+  const response = await fetch(`${BACKEND_URL}/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ message }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to generate graph: ${response.statusText}`);
+  }
+
+  return response.json();
 }
 

@@ -1,0 +1,38 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="600" fill="#0f172a" />
+
+  <text x="400" y="50" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="white" text-anchor="middle">Integrals: Area Under a Curve</text>
+
+  <path d="M100 450 C 150 300, 250 300, 300 450" stroke="#6366f1" stroke-width="3" fill="none" />
+  <path d="M300 450 C 350 600, 450 600, 500 450" stroke="#6366f1" stroke-width="3" fill="none" />
+
+  <rect x="100" y="450" width="400" height="10" fill="white" />
+
+  <text x="100" y="440" font-family="Arial, sans-serif" font-size="16" fill="white">a</text>
+  <text x="500" y="440" font-family="Arial, sans-serif" font-size="16" fill="white">b</text>
+  <text x="300" y="300" font-family="Arial, sans-serif" font-size="16" fill="white" fill="#6366f1">f(x)</text>
+
+  <path d="M100 450 L 100 500" stroke="white" stroke-width="1" />
+  <path d="M500 450 L 500 500" stroke="white" stroke-width="1" />
+
+  <text x="150" y="550" font-family="Arial, sans-serif" font-size="20" fill="white">Area = ∫<tspan font-size="14" baseline-shift="sub">a</tspan><tspan font-size="14" baseline-shift="super">b</tspan> f(x) dx</text>
+
+  <text x="650" y="150" font-family="Arial, sans-serif" font-size="20" fill="#10b981">Fundamental Theorem</text>
+  <text x="650" y="180" font-family="Arial, sans-serif" font-size="18" fill="white">∫<tspan font-size="12" baseline-shift="sub">a</tspan><tspan font-size="12" baseline-shift="super">b</tspan> f(x) dx = F(b) - F(a)</text>
+  <text x="650" y="210" font-family="Arial, sans-serif" font-size="14" fill="white">where F'(x) = f(x)</text>
+
+  <text x="650" y="300" font-family="Arial, sans-serif" font-size="20" fill="#f59e0b">Applications:</text>
+  <text x="650" y="330" font-family="Arial, sans-serif" font-size="16" fill="white">- Physics: Work, Displacement</text>
+  <text x="650" y="360" font-family="Arial, sans-serif" font-size="16" fill="white">- Engineering: Volume, Center of Mass</text>
+
+  <rect x="120" y="350" width="50" height="30" fill="#ef4444" opacity="0.5" />
+  <rect x="180" y="300" width="50" height="80" fill="#ef4444" opacity="0.5"/>
+  <rect x="240" y="370" width="50" height="10" fill="#ef4444" opacity="0.5"/>
+  <rect x="300" y="320" width="50" height="60" fill="#ef4444" opacity="0.5"/>
+  <rect x="360" y="340" width="50" height="40" fill="#ef4444" opacity="0.5"/>
+  <rect x="420" y="310" width="50" height="70" fill="#ef4444" opacity="0.5"/>
+
+  <text x="300" y="100" font-family="Arial, sans-serif" font-size="20" fill="white" text-anchor="middle">Area Approximation</text>
+
+  <text x="400" y="590" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">Created for educational purposes</text>
+</svg>

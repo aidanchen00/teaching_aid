@@ -1,0 +1,34 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="600" fill="#0f172a"/>
+  <text x="400" y="50" text-anchor="middle" font-size="30" font-family="Arial, sans-serif" fill="white">Calculus Fundamentals</text>
+
+  <line x1="50" y1="100" x2="750" y2="100" stroke="white" stroke-width="1"/>
+
+  <text x="100" y="150" font-size="20" font-family="Arial, sans-serif" fill="white">Derivatives:</text>
+  <path d="M100,180 C200,280 300,100 400,200" stroke="#6366f1" stroke-width="3" fill="none"/>
+  <line x1="400" y1="200" x2="450" y2="150" stroke="#f59e0b" stroke-width="2"/>
+  <text x="460" y="150" font-size="14" font-family="Arial, sans-serif" fill="white">Tangent Line</text>
+  <text x="100" y="220" font-size="16" font-family="Arial, sans-serif" fill="white">f'(x) = dy/dx</text>
+  <text x="100" y="240" font-size="14" font-family="Arial, sans-serif" fill="white">Rate of Change</text>
+
+  <line x1="50" y1="270" x2="750" y2="270" stroke="white" stroke-width="1"/>
+
+  <text x="100" y="320" font-size="20" font-family="Arial, sans-serif" fill="white">Integrals:</text>
+  <rect x="100" y="350" width="100" height="80" fill="#10b981" opacity="0.5"/>
+  <rect x="200" y="370" width="100" height="60" fill="#10b981" opacity="0.7"/>
+  <rect x="300" y="390" width="100" height="40" fill="#10b981" opacity="0.9"/>
+
+  <text x="450" y="380" font-size="16" font-family="Arial, sans-serif" fill="white">∫ f(x) dx</text>
+  <text x="450" y="400" font-size="14" font-family="Arial, sans-serif" fill="white">Area under Curve</text>
+
+    <line x1="50" y1="450" x2="750" y2="450" stroke="white" stroke-width="1"/>
+
+   <text x="100" y="500" font-size="20" font-family="Arial, sans-serif" fill="white">Limits:</text>
+    <circle cx="200" cy="540" r="30" fill="white" stroke="#ef4444" stroke-width="2"/>
+    <circle cx="200" cy="540" r="2" fill="#ef4444"/>
+
+    <text x="300" y="520" font-size="16" font-family="Arial, sans-serif" fill="white">lim  f(x)</text>
+    <text x="300" y="540" font-size="16" font-family="Arial, sans-serif" fill="white">x→a</text>
+    <text x="300" y="560" font-size="14" font-family="Arial, sans-serif" fill="white">Value as x approaches a</text>
+
+</svg>

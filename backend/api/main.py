@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
-from api.routes import session, lesson, viz
+from api.routes import session, lesson, viz, chat
 
 app = FastAPI(
     title="Learning App Backend",
@@ -28,6 +28,7 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 app.include_router(session.router, prefix="/session", tags=["Session"])
 app.include_router(lesson.router, tags=["Lesson"])
 app.include_router(viz.router, tags=["Visualization"])
+app.include_router(chat.router, prefix="/chat", tags=["Chat"])
 
 @app.get("/")
 async def root():

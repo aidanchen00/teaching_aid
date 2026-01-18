@@ -1,0 +1,57 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="axisGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.5" />
+      <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feOffset dx="3" dy="3" in="blur" result="offsetBlur"/>
+      <feComponentTransfer in="offsetBlur" result="offsetBlurAlpha">
+        <feFuncA type="linear" slope="0.5"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode in="offsetBlurAlpha"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="800" height="600" fill="url(#bgGradient)" />
+
+  <text x="400" y="50" text-anchor="middle" font-size="24" font-family="Arial" fill="white">Social Science - Networks &amp; Systems</text>
+
+  <!-- 3D Axes -->
+  <line x1="100" y1="400" x2="700" y2="400" stroke="url(#axisGradient)" stroke-width="3" filter="url(#shadow)" />
+  <line x1="400" y1="500" x2="400" y2="100" stroke="url(#axisGradient)" stroke-width="3" filter="url(#shadow)" />
+  <line x1="150" y1="450" x2="650" y2="50" stroke="url(#axisGradient)" stroke-width="3" filter="url(#shadow)" />
+
+  <text x="710" y="405" font-size="12" font-family="Arial" fill="white">X</text>
+  <text x="390" y="90" font-size="12" font-family="Arial" fill="white">Y</text>
+  <text x="660" y="40" font-size="12" font-family="Arial" fill="white">Z</text>
+
+  <!-- Nodes representing social entities -->
+  <circle cx="250" cy="300" r="20" fill="#6366f1" filter="url(#shadow)"/>
+  <circle cx="550" cy="250" r="20" fill="#10b981" filter="url(#shadow)"/>
+  <circle cx="350" cy="450" r="20" fill="#f59e0b" filter="url(#shadow)"/>
+  <circle cx="600" cy="400" r="20" fill="#ef4444" filter="url(#shadow)"/>
+  <circle cx="400" cy="200" r="20" fill="#6366f1" filter="url(#shadow)"/>
+
+  <text x="250" y="300" text-anchor="middle" dominant-baseline="middle" font-size="10" font-family="Arial" fill="white">A</text>
+  <text x="550" y="250" text-anchor="middle" dominant-baseline="middle" font-size="10" font-family="Arial" fill="white">B</text>
+  <text x="350" y="450" text-anchor="middle" dominant-baseline="middle" font-size="10" font-family="Arial" fill="white">C</text>
+  <text x="600" y="400" text-anchor="middle" dominant-baseline="middle" font-size="10" font-family="Arial" fill="white">D</text>
+  <text x="400" y="200" text-anchor="middle" dominant-baseline="middle" font-size="10" font-family="Arial" fill="white">E</text>
+
+  <!-- Edges representing relationships -->
+  <line x1="250" y1="300" x2="550" y2="250" stroke="#ddd" stroke-width="2" stroke-opacity="0.6" filter="url(#shadow)" />
+  <line x1="250" y1="300" x2="350" y2="450" stroke="#ddd" stroke-width="2" stroke-opacity="0.6" filter="url(#shadow)" />
+  <line x1="550" y1="250" x2="600" y2="400" stroke="#ddd" stroke-width="2" stroke-opacity="0.6" filter="url(#shadow)" />
+  <line x1="350" y1="450" x2="600" y2="400" stroke="#ddd" stroke-width="2" stroke-opacity="0.6" filter="url(#shadow)" />
+  <line x1="400" y1="200" x2="250" y2="300" stroke="#ddd" stroke-width="2" stroke-opacity="0.6" filter="url(#shadow)" />
+  <line x1="400" y1="200" x2="550" y2="250" stroke="#ddd" stroke-width="2" stroke-opacity="0.6" filter="url(#shadow)" />
+</svg>

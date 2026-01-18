@@ -1,0 +1,43 @@
+<svg width="800" height="600" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="800" height="600" fill="#0f172a"/>
+<text x="400" y="50" text-anchor="middle" font-size="32" font-family="Arial" fill="white">Chemistry &amp; Calculus</text>
+
+<circle cx="200" cy="200" r="50" fill="#6366f1"/>
+<text x="200" y="205" text-anchor="middle" font-size="16" font-family="Arial" fill="white">Reactant A</text>
+
+<circle cx="350" cy="200" r="50" fill="#10b981"/>
+<text x="350" y="205" text-anchor="middle" font-size="16" font-family="Arial" fill="white">Reactant B</text>
+
+<path d="M250 200 L300 200" stroke="white" stroke-width="2"/>
+<path d="M295 195 L300 200 L295 205" stroke="white" stroke-width="2"/>
+
+<rect x="450" y="150" width="100" height="100" fill="#f59e0b"/>
+<text x="500" y="200" text-anchor="middle" font-size="16" font-family="Arial" fill="white">Product C</text>
+
+<text x="150" y="140" text-anchor="start" font-size="14" font-family="Arial" fill="white">Rate of reaction</text>
+<path d="M50 230 L100 230" stroke="#ef4444" stroke-width="3"/>
+<text x="110" y="235" text-anchor="start" font-size="14" font-family="Arial" fill="white">Decrease</text>
+
+<path d="M250 230 L300 230" stroke="#10b981" stroke-width="3"/>
+<text x="310" y="235" text-anchor="start" font-size="14" font-family="Arial" fill="white">Increase</text>
+
+<path d="M450 270 L500 270" stroke="#6366f1" stroke-width="3"/>
+<text x="510" y="275" text-anchor="start" font-size="14" font-family="Arial" fill="white">Equilibrium</text>
+
+<text x="100" y="300" font-size="18" font-family="Arial" fill="white">Differential Equations:</text>
+<text x="100" y="330" font-size="16" font-family="Arial" fill="white">d[C]/dt = k[A][B]</text>
+
+<text x="100" y="370" font-size="18" font-family="Arial" fill="white">Integrated Rate Laws:</text>
+<text x="100" y="400" font-size="16" font-family="Arial" fill="white">ln([A]t/[A]0) = -kt  (First Order)</text>
+
+<rect x="600" y="300" width="150" height="150" fill="#10b981" opacity="0.2"/>
+<text x="675" y="320" text-anchor="middle" font-size="16" font-family="Arial" fill="white">Applications:</text>
+<text x="675" y="350" text-anchor="middle" font-size="14" font-family="Arial" fill="white">Reaction Rates</text>
+<text x="675" y="380" text-anchor="middle" font-size="14" font-family="Arial" fill="white">Chemical Kinetics</text>
+<text x="675" y="410" text-anchor="middle" font-size="14" font-family="Arial" fill="white">Drug Delivery</text>
+
+<path d="M100 450 L100 500 L200 500" stroke="#f59e0b" stroke-width="2"/>
+<path d="M200 500 L250 450 L100 450" stroke="#f59e0b" stroke-width="2"/>
+
+<text x="175" y="490" text-anchor="middle" font-size="14" font-family="Arial" fill="white">Activation Energy</text>
+</svg>

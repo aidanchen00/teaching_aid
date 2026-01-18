@@ -3,25 +3,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { KnowledgeGraphPanel } from './knowledge-graph-panel';
 import { LessonOverlay } from './lesson-overlay';
+import { Chat } from './chat';
 import { AgentCommand } from '@/hooks/useAgentDataChannel';
+import { GraphNode, GraphData } from '@/lib/types';
 
 type Mode = 'GRAPH' | 'VIZ';
-
-interface GraphNode {
-  id: string;
-  label: string;
-}
-
-interface GraphLink {
-  source: string;
-  target: string;
-}
-
-interface GraphData {
-  centerId: string;
-  nodes: GraphNode[];
-  links: GraphLink[];
-}
 
 interface LearningPanelProps {
   lastCommand?: AgentCommand | null;
@@ -148,6 +134,15 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
     setMode('GRAPH');
   };
 
+  // Handle graph updates from Chat component
+  const handleGraphUpdate = useCallback((newGraph: GraphData) => {
+    console.log('[LearningPanel] Graph updated from chat:', newGraph);
+    setGraph(newGraph);
+    // Reset selected node when graph changes
+    setSelectedNode(null);
+    setMode('GRAPH');
+  }, []);
+
   // Handle agent commands
   useEffect(() => {
     if (!lastCommand || !sessionId || !graph) return;
@@ -229,19 +224,28 @@ export function LearningPanel({ lastCommand }: LearningPanelProps) {
           {error}
         </div>
       )}
-      
+
       {/* Knowledge Graph */}
       {graph && (
-        <KnowledgeGraphPanel 
-          graph={graph} 
+        <KnowledgeGraphPanel
+          graph={graph}
           onNodeClick={handleNodeClick}
           isBlurred={mode === 'VIZ'}
         />
       )}
-      
+
+      {/* Chat Component */}
+      {mode === 'GRAPH' && (
+        <Chat
+          onGraphUpdate={handleGraphUpdate}
+          currentGraph={graph}
+          sessionId={sessionId}
+        />
+      )}
+
       {/* Lesson Overlay */}
       {mode === 'VIZ' && selectedNode && sessionId && (
-        <LessonOverlay 
+        <LessonOverlay
           node={selectedNode}
           sessionId={sessionId}
           onBackToGraph={handleBackToGraph}

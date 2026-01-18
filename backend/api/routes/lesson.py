@@ -19,55 +19,33 @@ class SelectLessonResponse(BaseModel):
     summary: str
     vizJobId: str
 
-# Lesson content mapped by node ID
+# Lesson content mapped by node ID - includes prompts for AI teaching
 LESSON_CONTENT = {
-    "derivatives": {
-        "title": "Derivatives",
-        "summary": "Learn about rates of change and slopes of curves. Derivatives measure how a function changes as its input changes, forming the foundation of calculus."
+    # The 3 main visualization tool nodes
+    "threejs": {
+        "title": "Three.js",
+        "summary": "Three.js is a powerful JavaScript library for creating 3D graphics in the browser using WebGL. It provides a scene graph, cameras, lights, materials, and geometries to build interactive 3D visualizations, games, and animations. Key concepts include: Scene (container for all objects), Camera (perspective or orthographic view), Renderer (WebGL output to canvas), Mesh (geometry + material), and the animation loop using requestAnimationFrame."
     },
-    "integrals": {
-        "title": "Integrals",
-        "summary": "Discover how to find areas under curves and accumulate quantities. Integrals are the reverse operation of derivatives and have applications across physics and engineering."
+    "manim": {
+        "title": "Manim",
+        "summary": "Manim (Mathematical Animation Engine) is a Python library created by Grant Sanderson (3Blue1Brown) for creating precise mathematical animations. It excels at animating geometric transformations, function graphs, LaTeX equations, and step-by-step mathematical proofs. Key concepts include: Scene class (container for animations), Mobjects (mathematical objects), Animations (Create, Transform, FadeIn), and the construct() method where animations are defined. Manim outputs video files perfect for educational content."
     },
-    "limits": {
-        "title": "Limits",
-        "summary": "Understand the behavior of functions as they approach specific values. Limits are the foundational concept that makes calculus rigorous and precise."
+    "nano-banana-pro": {
+        "title": "Nano Banana Pro",
+        "summary": "Nano Banana Pro is a compact single-board computer designed for edge computing and AI applications. It features an ARM Cortex-A76 quad-core CPU, 8GB LPDDR4 RAM, integrated NPU (Neural Processing Unit) with 6 TOPS performance, GPIO pins for hardware interfacing, USB-C power delivery, Gigabit Ethernet, and eMMC storage. Ideal for robotics, IoT gateways, AI inference at the edge, and embedded Linux projects with low power consumption (15W TDP)."
     },
-    "chain_rule": {
-        "title": "Chain Rule",
-        "summary": "Master the technique for differentiating composite functions. The chain rule is essential for working with nested functions and complex relationships."
+    # Topic categories for chat-generated nodes
+    "calculus": {
+        "title": "Calculus",
+        "summary": "Calculus is the mathematical study of continuous change. It has two major branches: Differential Calculus (derivatives, rates of change, slopes of curves) and Integral Calculus (integrals, areas under curves, accumulation). Key concepts include limits, derivatives, integrals, the Fundamental Theorem of Calculus, chain rule, product rule, and applications in physics, engineering, and optimization."
     },
-    "product_rule": {
-        "title": "Product Rule",
-        "summary": "Learn how to differentiate products of functions. This rule is crucial when working with functions that are multiplied together."
+    "chemistry": {
+        "title": "Chemistry",
+        "summary": "Chemistry is the study of matter, its properties, composition, and transformations. Key concepts include: atomic structure (protons, neutrons, electrons), the periodic table organization, chemical bonds (ionic, covalent, metallic), molecular geometry, chemical reactions and equations, stoichiometry, acids and bases, and thermodynamics. Understanding chemistry helps explain everything from cooking to medicine to materials science."
     },
-    "power_rule": {
-        "title": "Power Rule",
-        "summary": "The simplest and most fundamental differentiation rule. Learn how to differentiate any power of x quickly and efficiently."
-    },
-    "implicit_differentiation": {
-        "title": "Implicit Differentiation",
-        "summary": "Differentiate equations where y is not isolated. This technique is powerful for curves and relationships that cannot be easily expressed as y=f(x)."
-    },
-    "integration_by_parts": {
-        "title": "Integration by Parts",
-        "summary": "A technique for integrating products of functions. Based on the product rule, this method helps solve complex integrals."
-    },
-    "substitution": {
-        "title": "U-Substitution",
-        "summary": "Simplify complex integrals through clever variable substitution. This technique is the integral analog of the chain rule."
-    },
-    "definite_integrals": {
-        "title": "Definite Integrals",
-        "summary": "Calculate exact areas and accumulated quantities. Definite integrals give specific numerical values rather than general formulas."
-    },
-    "continuity": {
-        "title": "Continuity",
-        "summary": "Explore functions that have no breaks or jumps. Continuous functions are smooth and predictable, making them easier to analyze."
-    },
-    "fundamental_theorem": {
-        "title": "Fundamental Theorem of Calculus",
-        "summary": "The bridge connecting derivatives and integrals. This theorem shows that differentiation and integration are inverse operations."
+    "social": {
+        "title": "Social Sciences",
+        "summary": "Social sciences study human society and social relationships. This includes psychology (individual behavior and mental processes), sociology (social structures and group dynamics), economics (resource allocation and markets), political science (governance and power), and anthropology (human cultures). Key concepts include social norms, institutions, networks, collective behavior, identity formation, and how societies organize and change over time."
     },
 }
 
@@ -104,7 +82,11 @@ async def select_lesson(session_id: str, request: SelectLessonRequest) -> Select
     
     # Create visualization job
     viz_job_id = job_manager.create_job()
-    
+
+    # Get vizType from node if available (from chat-generated nodes)
+    node_viz_type = getattr(node, 'vizType', None)
+    print(f"[Lesson] Node {node_id} has vizType: {node_viz_type}")
+
     # Start visualization generation in background
     # Note: job_id is passed separately to task_func via kwargs
     job_manager.start_job(
@@ -113,7 +95,8 @@ async def select_lesson(session_id: str, request: SelectLessonRequest) -> Select
         topic=node_id,
         lesson_title=lesson_content["title"],
         summary=lesson_content["summary"],
-        viz_job_id=viz_job_id  # passed as viz_job_id to avoid conflict
+        viz_job_id=viz_job_id,  # passed as viz_job_id to avoid conflict
+        viz_type=node_viz_type  # pass vizType from node
     )
     
     print(f"[Lesson] Selected lesson for node {node_id}, vizJobId={viz_job_id}")

@@ -1,0 +1,33 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="600" fill="#0f172a"/>
+
+  <text x="400" y="50" text-anchor="middle" font-size="32" fill="white" font-family="Arial, sans-serif">Understanding Limits</text>
+
+  <line x1="50" y1="300" x2="750" y2="300" stroke="white" stroke-width="2"/>
+  <line x1="400" y1="550" x2="400" y2="50" stroke="white" stroke-width="2"/>
+
+  <path d="M100,450 C200,200 300,200 400,300 C500,400 600,400 700,150" stroke="#6366f1" stroke-width="3" fill="none"/>
+
+  <circle cx="400" cy="300" r="8" fill="white"/>
+  <circle cx="390" cy="310" r="6" fill="#ef4444"/>
+
+  <line x1="390" y1="310" x2="350" y2="350" stroke="white" stroke-width="1" stroke-dasharray="5,5"/>
+  <text x="340" y="345" text-anchor="end" font-size="14" fill="white" font-family="Arial, sans-serif">x → c</text>
+
+  <line x1="390" y1="310" x2="450" y2="250" stroke="white" stroke-width="1" stroke-dasharray="5,5"/>
+  <text x="460" y="255" text-anchor="start" font-size="14" fill="white" font-family="Arial, sans-serif">f(x) → L</text>
+
+  <text x="50" y="570" font-size="16" fill="white" font-family="Arial, sans-serif">Definition:</text>
+  <text x="50" y="590" font-size="14" fill="white" font-family="Arial, sans-serif">lim f(x) = L</text>
+  <text x="150" y="590" font-size="14" fill="white" font-family="Arial, sans-serif">x→c</text>
+
+  <text x="600" y="400" font-size="14" fill="#10b981" font-family="Arial, sans-serif">Function</text>
+  <text x="600" y="420" font-size="14" fill="#10b981" font-family="Arial, sans-serif">Approaches L</text>
+
+  <text x="100" y="150" font-size="14" fill="#f59e0b" font-family="Arial, sans-serif">As x approaches c,</text>
+  <text x="100" y="170" font-size="14" fill="#f59e0b" font-family="Arial, sans-serif">f(x) approaches L</text>
+
+  <text x="50" y="280" font-size="14" fill="white" font-family="Arial, sans-serif">X-axis</text>
+  <text x="420" y="70" font-size="14" fill="white" font-family="Arial, sans-serif">Y-axis</text>
+
+</svg>

@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 class GraphNode:
     id: str
     label: str
+    vizType: Optional[str] = None  # "three" | "video" | "image"
 
 @dataclass
 class GraphLink:
@@ -25,142 +26,35 @@ class Session:
 # In-memory store
 sessions: Dict[str, Session] = {}
 
-# Knowledge domain structure - maps each concept to related concepts
-KNOWLEDGE_GRAPH = {
-    "derivatives": {
-        "label": "Derivatives",
-        "related": [
-            ("limits", "Limits"),
-            ("chain_rule", "Chain Rule"),
-            ("product_rule", "Product Rule"),
-            ("power_rule", "Power Rule"),
-            ("implicit_differentiation", "Implicit Differentiation"),
-        ]
-    },
-    "integrals": {
-        "label": "Integrals",
-        "related": [
-            ("derivatives", "Derivatives"),
-            ("integration_by_parts", "Integration by Parts"),
-            ("substitution", "U-Substitution"),
-            ("definite_integrals", "Definite Integrals"),
-            ("fundamental_theorem", "Fundamental Theorem"),
-        ]
-    },
-    "limits": {
-        "label": "Limits",
-        "related": [
-            ("derivatives", "Derivatives"),
-            ("continuity", "Continuity"),
-            ("lhopitals_rule", "L'Hôpital's Rule"),
-            ("infinite_limits", "Infinite Limits"),
-            ("sequences", "Sequences"),
-        ]
-    },
-    "chain_rule": {
-        "label": "Chain Rule",
-        "related": [
-            ("derivatives", "Derivatives"),
-            ("product_rule", "Product Rule"),
-            ("implicit_differentiation", "Implicit Differentiation"),
-            ("related_rates", "Related Rates"),
-        ]
-    },
-    "product_rule": {
-        "label": "Product Rule",
-        "related": [
-            ("derivatives", "Derivatives"),
-            ("chain_rule", "Chain Rule"),
-            ("quotient_rule", "Quotient Rule"),
-        ]
-    },
-    "power_rule": {
-        "label": "Power Rule",
-        "related": [
-            ("derivatives", "Derivatives"),
-            ("polynomials", "Polynomials"),
-            ("exponential_functions", "Exponential Functions"),
-        ]
-    },
-    "implicit_differentiation": {
-        "label": "Implicit Differentiation",
-        "related": [
-            ("derivatives", "Derivatives"),
-            ("chain_rule", "Chain Rule"),
-            ("related_rates", "Related Rates"),
-        ]
-    },
-    "integration_by_parts": {
-        "label": "Integration by Parts",
-        "related": [
-            ("integrals", "Integrals"),
-            ("product_rule", "Product Rule"),
-            ("definite_integrals", "Definite Integrals"),
-        ]
-    },
-    "substitution": {
-        "label": "U-Substitution",
-        "related": [
-            ("integrals", "Integrals"),
-            ("chain_rule", "Chain Rule"),
-            ("definite_integrals", "Definite Integrals"),
-        ]
-    },
-    "definite_integrals": {
-        "label": "Definite Integrals",
-        "related": [
-            ("integrals", "Integrals"),
-            ("fundamental_theorem", "Fundamental Theorem"),
-            ("riemann_sums", "Riemann Sums"),
-        ]
-    },
-    "continuity": {
-        "label": "Continuity",
-        "related": [
-            ("limits", "Limits"),
-            ("derivatives", "Derivatives"),
-            ("intermediate_value", "Intermediate Value Theorem"),
-        ]
-    },
-}
+# Initial nodes for the knowledge graph - 3 specific visualization tools
+INITIAL_NODES = [
+    GraphNode(id="threejs", label="Three.js", vizType="three"),
+    GraphNode(id="manim", label="Manim", vizType="video"),
+    GraphNode(id="nano-banana-pro", label="Nano Banana Pro", vizType="image"),
+]
 
-def generate_graph(center_id: str) -> tuple[List[GraphNode], List[GraphLink]]:
-    """
-    Generate a deterministic knowledge graph centered on a specific node.
-    
-    Returns:
-        - List of nodes (center + related)
-        - List of links connecting center to related nodes
-    """
-    if center_id not in KNOWLEDGE_GRAPH:
-        # Fallback to derivatives if unknown node
-        center_id = "derivatives"
-    
-    center_data = KNOWLEDGE_GRAPH[center_id]
-    
-    # Build nodes
-    nodes = [GraphNode(id=center_id, label=center_data["label"])]
-    links = []
-    
-    for related_id, related_label in center_data["related"]:
-        nodes.append(GraphNode(id=related_id, label=related_label))
-        # Create bidirectional link
-        links.append(GraphLink(source=center_id, target=related_id))
-    
-    return nodes, links
+# No links between them initially (they are independent tools)
+INITIAL_LINKS: List[GraphLink] = []
 
-def create_session(initial_center_id: str = "derivatives") -> Session:
-    """Create a new session with a unique ID."""
+# Default center is the first node
+DEFAULT_CENTER_ID = "threejs"
+
+def create_session(initial_center_id: str = None) -> Session:
+    """Create a new session with the 3 initial nodes."""
     session_id = str(uuid.uuid4())
-    nodes, links = generate_graph(initial_center_id)
-    
+
+    # Use the 3 predefined nodes
+    nodes = list(INITIAL_NODES)  # Copy to avoid mutation
+    links = list(INITIAL_LINKS)
+    center_id = initial_center_id if initial_center_id else DEFAULT_CENTER_ID
+
     session = Session(
         session_id=session_id,
-        center_id=initial_center_id,
+        center_id=center_id,
         nodes=nodes,
         links=links
     )
-    
+
     sessions[session_id] = session
     return session
 
@@ -169,22 +63,22 @@ def get_session(session_id: str) -> Optional[Session]:
     return sessions.get(session_id)
 
 def update_session_center(session_id: str, new_center_id: str) -> Optional[Session]:
-    """Update the center node of a session and regenerate the graph."""
+    """Update the center node of a session."""
     session = sessions.get(session_id)
     if not session:
         return None
-    
-    # Validate the new center exists
-    if new_center_id not in KNOWLEDGE_GRAPH:
-        return None
-    
-    # Regenerate graph with new center
-    nodes, links = generate_graph(new_center_id)
-    session.center_id = new_center_id
-    session.nodes = nodes
-    session.links = links
-    
-    return session
+
+    # Check if node exists in current session
+    node_in_session = any(n.id == new_center_id for n in session.nodes)
+
+    if node_in_session:
+        # Update the center ID - keep existing nodes and links
+        session.center_id = new_center_id
+        print(f"[SessionStore] Updated center to {new_center_id}")
+        return session
+
+    # Node not found
+    return None
 
 def find_node_by_label(session_id: str, label: str) -> Optional[str]:
     """
@@ -194,11 +88,70 @@ def find_node_by_label(session_id: str, label: str) -> Optional[str]:
     session = sessions.get(session_id)
     if not session:
         return None
-    
+
     label_lower = label.lower()
     for node in session.nodes:
         if node.label.lower() == label_lower:
             return node.id
-    
+
+    return None
+
+
+def update_session_from_chat(
+    session_id: str,
+    nodes: List[dict],
+    links: List[dict],
+    center_id: str
+) -> Optional[Session]:
+    """
+    Update a session with AI-generated graph data from chat.
+
+    Args:
+        session_id: The session ID to update
+        nodes: List of node dicts with id, label, vizType
+        links: List of link dicts with source, target
+        center_id: The ID of the center node
+
+    Returns:
+        Updated session or None if session doesn't exist
+    """
+    session = sessions.get(session_id)
+    if not session:
+        return None
+
+    # Convert to dataclass objects
+    session.nodes = [
+        GraphNode(
+            id=n["id"],
+            label=n["label"],
+            vizType=n.get("vizType")
+        )
+        for n in nodes
+    ]
+    session.links = [
+        GraphLink(source=l["source"], target=l["target"])
+        for l in links
+    ]
+    session.center_id = center_id
+
+    print(f"[SessionStore] Updated session {session_id} with {len(session.nodes)} nodes from chat")
+    return session
+
+
+def get_node_viz_type(session_id: str, node_id: str) -> Optional[str]:
+    """
+    Get the vizType for a specific node in a session.
+
+    Returns:
+        vizType string or None if not found
+    """
+    session = sessions.get(session_id)
+    if not session:
+        return None
+
+    for node in session.nodes:
+        if node.id == node_id:
+            return node.vizType
+
     return None
 

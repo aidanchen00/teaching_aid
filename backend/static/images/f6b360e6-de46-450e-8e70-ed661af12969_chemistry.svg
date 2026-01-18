@@ -1,0 +1,31 @@
+<svg width="800" height="600" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="800" height="600" fill="#0f172a"/>
+<text x="400" y="50" text-anchor="middle" font-size="30" font-family="Arial" fill="white">Chemistry &amp; Calculus: A Visual Guide</text>
+
+<circle cx="200" cy="250" r="50" fill="#6366f1"/>
+<text x="200" y="255" text-anchor="middle" font-size="16" font-family="Arial" fill="white">Reactant A</text>
+
+<circle cx="350" cy="250" r="50" fill="#10b981"/>
+<text x="350" y="255" text-anchor="middle" font-size="16" font-family="Arial" fill="white">Reactant B</text>
+
+<path d="M420 250 L500 250" stroke="white" stroke-width="2" stroke-linecap="round"/>
+<path d="M480 240 L500 250 L480 260" stroke="white" stroke-width="2" stroke-linecap="round"/>
+
+<circle cx="600" cy="250" r="50" fill="#f59e0b"/>
+<text x="600" y="255" text-anchor="middle" font-size="16" font-family="Arial" fill="white">Product C</text>
+
+<text x="400" y="150" text-anchor="middle" font-size="20" font-family="Arial" fill="white">Chemical Reaction</text>
+
+<rect x="50" y="350" width="300" height="200" rx="10" fill="#1e293b" stroke="white" stroke-width="1"/>
+<text x="200" y="380" text-anchor="middle" font-size="18" font-family="Arial" fill="white">Rate of Reaction:</text>
+<text x="200" y="420" text-anchor="middle" font-size="16" font-family="Arial" fill="white">d[C]/dt = k[A][B]</text>
+<text x="200" y="460" text-anchor="middle" font-size="12" font-family="Arial" fill="white">(Change in Product C over time)</text>
+<text x="200" y="500" text-anchor="middle" font-size="12" font-family="Arial" fill="white">k = Rate Constant</text>
+
+<rect x="450" y="350" width="300" height="200" rx="10" fill="#1e293b" stroke="white" stroke-width="1"/>
+<text x="600" y="380" text-anchor="middle" font-size="18" font-family="Arial" fill="white">Arrhenius Equation:</text>
+<text x="600" y="420" text-anchor="middle" font-size="16" font-family="Arial" fill="white">k = A * exp(-Ea/RT)</text>
+<text x="600" y="460" text-anchor="middle" font-size="12" font-family="Arial" fill="white">Ea = Activation Energy</text>
+<text x="600" y="500" text-anchor="middle" font-size="12" font-family="Arial" fill="white">R = Gas Constant, T = Temperature</text>
+
+</svg>

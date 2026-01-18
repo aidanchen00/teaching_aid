@@ -1,0 +1,60 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="indigoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:0.8" />
+    </linearGradient>
+    <linearGradient id="emeraldGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:0.8" />
+    </linearGradient>
+    <linearGradient id="amberGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:0.8" />
+    </linearGradient>
+    <linearGradient id="redGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:0.8" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-color="black" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+  <rect width="800" height="600" fill="url(#bgGradient)" />
+  <text x="400" y="50" text-anchor="middle" font-size="24" font-family="Arial, sans-serif" fill="white">Chemistry - Atomic Structure &amp; Bonds</text>
+
+  <!-- 3D Axes -->
+  <line x1="200" y1="300" x2="600" y2="300" stroke="white" stroke-width="2" filter="url(#shadow)"/>
+  <line x1="400" y1="500" x2="400" y2="100" stroke="white" stroke-width="2" filter="url(#shadow)"/>
+  <line x1="250" y1="450" x2="550" y2="150" stroke="white" stroke-width="2" filter="url(#shadow)"/>
+  <text x="610" y="305" font-size="12" font-family="Arial, sans-serif" fill="white">X</text>
+  <text x="410" y="95" font-size="12" font-family="Arial, sans-serif" fill="white">Y</text>
+  <text x="560" y="145" font-size="12" font-family="Arial, sans-serif" fill="white">Z</text>
+
+  <!-- 3D Atom Representation -->
+  <ellipse cx="400" cy="300" rx="50" ry="30" fill="url(#indigoGradient)" filter="url(#shadow)"/>
+  <ellipse cx="400" cy="300" rx="50" ry="30" fill="none" stroke="#6366f1" stroke-width="2" stroke-dasharray="5,5"/>
+
+  <ellipse cx="480" cy="250" rx="30" ry="18" fill="url(#emeraldGradient)" filter="url(#shadow)"/>
+  <ellipse cx="480" cy="250" rx="30" ry="18" fill="none" stroke="#10b981" stroke-width="2" stroke-dasharray="3,3"/>
+
+  <ellipse cx="320" cy="350" rx="30" ry="18" fill="url(#amberGradient)" filter="url(#shadow)"/>
+  <ellipse cx="320" cy="350" rx="30" ry="18" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="3,3"/>
+
+  <!-- Bond Representation -->
+  <line x1="400" y1="300" x2="480" y2="250" stroke="#ef4444" stroke-width="4" filter="url(#shadow)"/>
+  <line x1="400" y1="300" x2="320" y2="350" stroke="#ef4444" stroke-width="4" filter="url(#shadow)"/>
+
+  <!-- Labels -->
+  <text x="400" y="350" text-anchor="middle" font-size="14" font-family="Arial, sans-serif" fill="white">Nucleus</text>
+  <text x="480" y="210" text-anchor="middle" font-size="14" font-family="Arial, sans-serif" fill="white">Electron</text>
+  <text x="320" y="400" text-anchor="middle" font-size="14" font-family="Arial, sans-serif" fill="white">Electron</text>
+  <text x="400" y="250" text-anchor="middle" font-size="14" font-family="Arial, sans-serif" fill="white">Atom</text>
+  <text x="400" y="400" text-anchor="middle" font-size="14" font-family="Arial, sans-serif" fill="white">Covalent Bonds</text>
+
+  <text x="100" y="550" font-size="10" font-family="Arial, sans-serif" fill="white">3D Perspective Visualization</text>
+</svg>

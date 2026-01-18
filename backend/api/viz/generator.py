@@ -1,133 +1,143 @@
 """
-Visualization generator with stubbed LLM decision logic.
-Deterministically selects visualization modality based on topic.
+Visualization generator - supports both SVG and Manim video.
+- "three" and "image" vizTypes: SVG (cached or Gemini-generated)
+- "video" vizType: Actual Manim-rendered MP4 videos
 """
-from typing import Dict, Any, Literal
-from .three_templates import get_three_spec_for_topic
-from .manim_renderer import render_manim_video
-from .gemini_image import generate_gemini_image
+from typing import Dict, Any
+from .gemini_image import generate_gemini_svg, find_cached_svg
+from .manim_generator import generate_manim_video, find_cached_video
 from .job_manager import job_manager
 
-VizType = Literal["three_spec", "manim_mp4", "image"]
-
-def select_viz_modality(topic: str) -> VizType:
-    """
-    Stubbed LLM decision: deterministically select visualization type based on topic.
-    
-    In production, this would call an LLM to decide the best visualization type.
-    For demo, we use simple rules:
-    - Derivatives, Chain Rule, Power Rule -> three_spec (interactive)
-    - Integrals, Definite Integrals -> manim_mp4 (animated)
-    - Limits, Continuity, Implicit Differentiation -> image (diagram)
-    """
-    topic_lower = topic.lower().replace(" ", "_")
-    
-    # Interactive 3D graphs for derivative-related topics
-    if topic_lower in [
-        "derivatives",
-        "chain_rule",
-        "product_rule",
-        "power_rule",
-        "quotient_rule"
-    ]:
-        return "three_spec"
-    
-    # Animated videos for integral-related topics
-    elif topic_lower in [
-        "integrals",
-        "definite_integrals",
-        "integration_by_parts",
-        "substitution",
-        "riemann_sums"
-    ]:
-        return "manim_mp4"
-    
-    # Static diagrams for conceptual topics
-    elif topic_lower in [
-        "limits",
-        "continuity",
-        "implicit_differentiation",
-        "related_rates",
-        "sequences",
-        "lhopitals_rule"
-    ]:
-        return "image"
-    
-    # Default to three_spec for unknown topics
-    else:
-        return "three_spec"
 
 async def generate_visualization(
     topic: str,
     lesson_title: str,
     summary: str,
-    job_id: str
+    job_id: str,
+    viz_type: str = "image"
 ) -> Dict[str, Any]:
     """
     Generate visualization for a topic.
-    
-    Returns:
-        Dict with 'type' and either 'spec' (for three_spec) or 'url' (for image/video)
+
+    For "video" vizType: Generate actual Manim video (MP4)
+    For "three"/"image" vizType: Generate SVG (cached or Gemini)
+
+    Returns appropriate content based on type.
     """
-    # Select modality
-    viz_type = select_viz_modality(topic)
-    
-    print(f"[VizGenerator] Selected {viz_type} for topic: {topic}")
-    
-    # Update job stage
-    job_manager.update_stage(job_id, f"Generating {viz_type} visualization...")
-    
-    try:
-        if viz_type == "three_spec":
-            # Generate Three.js spec
-            job_manager.update_stage(job_id, "Building interactive 3D specification...")
-            spec = get_three_spec_for_topic(topic)
-            return {
-                "type": "three_spec",
-                "spec": spec,
-                "url": None
-            }
-        
-        elif viz_type == "manim_mp4":
-            # Render Manim video
-            job_manager.update_stage(job_id, "Generating animation code...")
-            url = await render_manim_video(topic, lesson_title, job_id)
-            return {
-                "type": "manim_mp4",
-                "spec": None,
-                "url": url
-            }
-        
-        elif viz_type == "image":
-            # Generate Gemini image
-            job_manager.update_stage(job_id, "Creating educational diagram...")
-            url = await generate_gemini_image(topic, lesson_title, summary, job_id)
-            return {
-                "type": "image",
-                "spec": None,
-                "url": url
-            }
-        
-        else:
-            raise ValueError(f"Unknown visualization type: {viz_type}")
-    
-    except Exception as e:
-        print(f"[VizGenerator] Error generating {viz_type}: {e}")
-        raise
+    # Default to "image" if no vizType provided
+    if not viz_type:
+        viz_type = "image"
+
+    print(f"[VizGenerator] Generating viz for topic={topic}, vizType={viz_type}")
+
+    # Handle VIDEO type - use Manim
+    if viz_type == "video":
+        return await _generate_video(topic, lesson_title, summary, job_id)
+
+    # Handle THREE and IMAGE types - use SVG
+    return await _generate_svg(topic, lesson_title, summary, job_id, viz_type)
+
+
+async def _generate_video(
+    topic: str,
+    lesson_title: str,
+    summary: str,
+    job_id: str
+) -> Dict[str, Any]:
+    """Generate Manim video for the topic."""
+    # Check for pre-generated video first
+    job_manager.update_stage(job_id, "Checking video cache...")
+    cached_video = find_cached_video(topic)
+
+    if cached_video:
+        print(f"[VizGenerator] Video cache HIT: {topic}")
+        return {
+            "type": "video",
+            "videoUrl": cached_video,
+            "cached": True
+        }
+
+    # Generate with Manim
+    print(f"[VizGenerator] Video cache MISS: rendering with Manim")
+    job_manager.update_stage(job_id, "Rendering Manim animation...")
+
+    success, result = await generate_manim_video(
+        topic=topic,
+        title=lesson_title,
+        summary=summary,
+        job_id=job_id
+    )
+
+    if success:
+        return {
+            "type": "video",
+            "videoUrl": result,
+            "cached": False
+        }
+    else:
+        # Fallback to SVG if Manim fails
+        print(f"[VizGenerator] Manim failed, falling back to SVG: {result}")
+        job_manager.update_stage(job_id, "Manim failed, generating SVG fallback...")
+        return await _generate_svg(topic, lesson_title, summary, job_id, "video")
+
+
+async def _generate_svg(
+    topic: str,
+    lesson_title: str,
+    summary: str,
+    job_id: str,
+    viz_type: str
+) -> Dict[str, Any]:
+    """Generate SVG visualization for the topic."""
+    # Check for cached SVG first
+    job_manager.update_stage(job_id, "Checking cache...")
+    cached_svg = find_cached_svg(topic, lesson_title, viz_type)
+
+    if cached_svg:
+        print(f"[VizGenerator] SVG cache HIT: {topic} ({viz_type})")
+        return {
+            "type": "svg",
+            "svgContent": cached_svg,
+            "cached": True
+        }
+
+    # No cache - generate with Gemini
+    print(f"[VizGenerator] SVG cache MISS: generating with Gemini")
+    job_manager.update_stage(job_id, "Generating visualization...")
+
+    svg_content = await generate_gemini_svg(
+        topic=topic,
+        lesson_title=lesson_title,
+        summary=summary,
+        viz_type=viz_type
+    )
+
+    return {
+        "type": "svg",
+        "svgContent": svg_content,
+        "cached": False
+    }
+
 
 async def generate_visualization_task(
     topic: str,
     lesson_title: str,
     summary: str,
-    viz_job_id: str
+    viz_job_id: str,
+    viz_type: str = None
 ):
     """
     Task wrapper for visualization generation.
-    Updates job manager with progress and results.
     """
     try:
-        result = await generate_visualization(topic, lesson_title, summary, viz_job_id)
+        result = await generate_visualization(
+            topic=topic,
+            lesson_title=lesson_title,
+            summary=summary,
+            job_id=viz_job_id,
+            viz_type=viz_type
+        )
         return result
     except Exception as e:
+        print(f"[VizGenerator] Error: {e}")
         raise Exception(f"Visualization generation failed: {str(e)}")
-
