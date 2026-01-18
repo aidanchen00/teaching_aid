@@ -1,0 +1,282 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { processQuery, speak, createSpeechRecognition, stopSpeaking } from '../services/ai';
+import './VoiceControl.css';
+
+function VoiceControl({ onResults, onFilterChange }) {
+  const [isListening, setIsListening] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [response, setResponse] = useState('');
+  const recognitionRef = useRef(null);
+  const interruptRecognitionRef = useRef(null);
+  const speakingAbortedRef = useRef(false);
+  const pendingQueryRef = useRef(null);
+
+  const processAndSpeakRef = useRef(null);
+
+  const stopInterruptListener = useCallback(() => {
+    if (interruptRecognitionRef.current) {
+      try {
+        interruptRecognitionRef.current.abort();
+      } catch (e) {
+        // Ignore
+      }
+      interruptRecognitionRef.current = null;
+    }
+  }, []);
+
+  // Start listening for interruptions while AI is speaking
+  const startInterruptListener = useCallback(() => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event) => {
+      // User is speaking - interrupt immediately!
+      stopSpeaking();
+      speakingAbortedRef.current = true;
+      setIsSpeaking(false);
+
+      // Get what they said
+      const text = event.results[event.results.length - 1][0].transcript;
+      if (event.results[event.results.length - 1].isFinal) {
+        stopInterruptListener();
+        // Store the query to process after current cycle
+        pendingQueryRef.current = text;
+      }
+    };
+
+    recognition.onsoundstart = () => {
+      // Sound detected - stop AI immediately
+      stopSpeaking();
+      speakingAbortedRef.current = true;
+      setIsSpeaking(false);
+      setIsListening(true);
+    };
+
+    recognition.onend = () => {
+      // Recognition ended - process pending query if any
+      if (pendingQueryRef.current && processAndSpeakRef.current) {
+        const query = pendingQueryRef.current;
+        pendingQueryRef.current = null;
+        processAndSpeakRef.current(query);
+      }
+    };
+
+    recognition.onerror = () => {
+      // Ignore errors in interrupt mode
+    };
+
+    try {
+      recognition.start();
+      interruptRecognitionRef.current = recognition;
+    } catch (e) {
+      // Already started or not available
+    }
+  }, [stopInterruptListener]);
+
+  // Process query and speak result
+  const processAndSpeak = useCallback(async (text) => {
+    setTranscript(text);
+    setIsProcessing(true);
+    setIsListening(false);
+    speakingAbortedRef.current = false;
+
+    try {
+      const result = await processQuery(text);
+
+      setResponse(result.response);
+      onResults?.(result);
+
+      // Speak the response with ElevenLabs (unless interrupted)
+      if (!speakingAbortedRef.current) {
+        setIsSpeaking(true);
+
+        // Start interrupt listener while speaking
+        startInterruptListener();
+
+        await speak(result.response);
+
+        // Stop interrupt listener when done speaking
+        stopInterruptListener();
+        setIsSpeaking(false);
+      }
+    } catch (error) {
+      console.error('Error processing query:', error);
+      setResponse('Sorry, something went wrong. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [onResults, startInterruptListener, stopInterruptListener]);
+
+  // Keep ref updated
+  useEffect(() => {
+    processAndSpeakRef.current = processAndSpeak;
+  }, [processAndSpeak]);
+
+  useEffect(() => {
+    recognitionRef.current = createSpeechRecognition(
+      processAndSpeak,
+      () => {
+        // User started speaking - immediately stop any AI speech
+        stopSpeaking();
+        speakingAbortedRef.current = true;
+        setIsSpeaking(false);
+        stopInterruptListener();
+        setIsListening(true);
+      },
+      () => setIsListening(false)
+    );
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+      stopInterruptListener();
+      stopSpeaking();
+    };
+  }, [processAndSpeak, stopInterruptListener]);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      alert('Speech recognition is not supported in your browser. Please use Chrome.');
+      return;
+    }
+
+    // If currently speaking, interrupt and start listening
+    if (isSpeaking) {
+      stopSpeaking();
+      speakingAbortedRef.current = true;
+      setIsSpeaking(false);
+      stopInterruptListener();
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      setTranscript('');
+      setResponse('');
+      recognitionRef.current.start();
+    }
+  };
+
+  const getOverlayClass = () => {
+    if (isSpeaking) return 'speaking';
+    if (isProcessing) return 'processing';
+    if (isListening) return 'listening';
+    if (transcript || response) return 'active';
+    return '';
+  };
+
+  const getOrbClass = () => {
+    if (isSpeaking) return 'speaking';
+    if (isProcessing) return 'processing';
+    if (isListening) return 'listening';
+    return '';
+  };
+
+  const getHintText = () => {
+    if (isSpeaking) return 'Interrupt';
+    if (isProcessing) return 'Thinking';
+    if (isListening) return 'Listening';
+    return 'Speak';
+  };
+
+  const getAgentState = () => {
+    if (isSpeaking) return { state: 'speaking', label: 'Speaking', icon: '🔊' };
+    if (isProcessing) return { state: 'thinking', label: 'Thinking', icon: '💭' };
+    if (isListening) return { state: 'listening', label: 'Listening', icon: '🎤' };
+    if (transcript || response) return { state: 'ready', label: 'Ready', icon: '✨' };
+    return { state: 'idle', label: 'Idle', icon: '💤' };
+  };
+
+  const agentState = getAgentState();
+
+  return (
+    <div className={`voice-overlay ${getOverlayClass()}`}>
+      {/* Left-side Transcript Panel */}
+      <div className={`transcript-panel ${(transcript || response) ? 'visible' : ''}`}>
+        <div className="transcript-header">
+          <div className={`agent-status ${agentState.state}`}>
+            <span className="agent-icon">{agentState.icon}</span>
+            <span className="agent-label">{agentState.label}</span>
+            <span className="agent-dot"></span>
+          </div>
+          <span className="transcript-title">Conversation</span>
+        </div>
+
+        <div className="transcript-content">
+          {transcript && (
+            <div className="transcript-message user">
+              <div className="message-label">You</div>
+              <div className="message-text">{transcript}</div>
+            </div>
+          )}
+          {response && (
+            <div className="transcript-message assistant">
+              <div className="message-label">Assistant</div>
+              <div className="message-text">{response}</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="voice-bottom-area">
+        {/* Waveform visualization */}
+        <div className="voice-waveform">
+          {[...Array(15)].map((_, i) => (
+            <div key={i} className="wave-bar" />
+          ))}
+        </div>
+
+        {/* Main orb button */}
+        <div className="voice-orb-container">
+          {/* Particles */}
+          <div className="voice-particles">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="particle" />
+            ))}
+          </div>
+
+          <button
+            className={`voice-orb ${getOrbClass()}`}
+            onClick={toggleListening}
+            disabled={isProcessing}
+          >
+            {/* Expanding rings */}
+            <div className="orb-ring orb-ring-1" />
+            <div className="orb-ring orb-ring-2" />
+            <div className="orb-ring orb-ring-3" />
+
+            {/* Mic icon */}
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" />
+            </svg>
+          </button>
+
+          <span className="voice-hint">{getHintText()}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default VoiceControl;

@@ -1,0 +1,448 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import './CurriculumPopup.css';
+import Research from './Research';
+import ComparisonView from './ComparisonView';
+
+const formatLabels = {
+  'visual-heavy': 'Visual Learning',
+  'theory-heavy': 'Theory-Based',
+  'project-based': 'Project-Based'
+};
+
+const formatIcons = {
+  'visual-heavy': (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+      <line x1="8" y1="21" x2="16" y2="21"/>
+      <line x1="12" y1="17" x2="12" y2="21"/>
+    </svg>
+  ),
+  'theory-heavy': (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+    </svg>
+  ),
+  'project-based': (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+      <polyline points="2 17 12 22 22 17"/>
+      <polyline points="2 12 12 17 22 12"/>
+    </svg>
+  )
+};
+
+function CurriculumPopup({
+  curriculum,
+  onClose,
+  comparisonList = [],
+  activeComparisonTab = 0,
+  setActiveComparisonTab,
+  addToComparison,
+  removeFromComparison,
+  isInComparison,
+  allCurriculums = [],
+  router
+}) {
+  const [showAddMenu, setShowAddMenu] = useState(false);
+  const [panelWidth, setPanelWidth] = useState(420);
+  const [isResizing, setIsResizing] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const addMenuRef = useRef(null);
+  const panelRef = useRef(null);
+
+  // Handle START button - Navigate to /room with session
+  const handleStart = async () => {
+    setIsStarting(true);
+    try {
+      console.log('[START] Creating session with curriculum:', curriculum.title);
+
+      // Create session with curriculum context
+      const response = await fetch('http://localhost:8000/session/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          curriculum: {
+            id: curriculum.id,
+            title: curriculum.title,
+            school: curriculum.school,
+            topics: curriculum.topics,
+            description: curriculum.description,
+            format: curriculum.format,
+            instructor: curriculum.instructor,
+            location: curriculum.location
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create session: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const sessionId = data.sessionId;
+
+      console.log('[START] Session created:', sessionId);
+      console.log('[START] Navigating to /room...');
+
+      // Navigate to /room with session ID (same app now!)
+      router.push(`/room?session=${sessionId}`);
+
+    } catch (error) {
+      console.error('[START] Error:', error);
+      alert(`Failed to start learning session: ${error.message}\n\nMake sure backend is running on port 8000.`);
+    } finally {
+      setIsStarting(false);
+    }
+  };
+
+  // Handle resize drag
+  const handleMouseDown = useCallback((e) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizing) return;
+      const newWidth = window.innerWidth - e.clientX;
+      // Clamp between 320 and 900 pixels
+      setPanelWidth(Math.max(320, Math.min(900, newWidth)));
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing]);
+
+  // Close add menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (addMenuRef.current && !addMenuRef.current.contains(event.target)) {
+        setShowAddMenu(false);
+      }
+    };
+
+    if (showAddMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAddMenu]);
+
+  // If no curriculum and no comparison list, don't render
+  if (!curriculum && comparisonList.length === 0) return null;
+
+  // Check if the currently selected curriculum is in the comparison list
+  const selectedInComparison = curriculum
+    ? comparisonList.findIndex(c => c.id === curriculum.id)
+    : -1;
+
+  // Determine which curriculum to display based on active tab
+  // Special case: if curriculum is selected (clicked on map) and not in comparison, show it
+  const isCompareTab = activeComparisonTab === comparisonList.length && comparisonList.length >= 2;
+
+  // If a curriculum was just clicked (selectedCurriculum exists), check if we should show it
+  const showClickedCurriculum = curriculum && selectedInComparison === -1 && activeComparisonTab >= comparisonList.length;
+
+  const displayCurriculum = isCompareTab
+    ? null
+    : showClickedCurriculum
+      ? curriculum
+      : (comparisonList[activeComparisonTab] || curriculum);
+
+  // Check if current display is the clicked curriculum (not from comparison)
+  const isShowingExternalCurriculum = displayCurriculum && !comparisonList.some(c => c.id === displayCurriculum.id);
+
+  const handleTabClick = (index) => {
+    setActiveComparisonTab(index);
+  };
+
+  const handleRemoveFromComparison = (e, curriculumId) => {
+    e.stopPropagation();
+    removeFromComparison(curriculumId);
+  };
+
+  const handleAddToComparison = (curriculumToAdd) => {
+    addToComparison(curriculumToAdd);
+    setShowAddMenu(false);
+  };
+
+  // Get curriculums not in comparison for the add menu
+  const availableCurriculums = allCurriculums.filter(
+    c => !comparisonList.some(comp => comp.id === c.id)
+  );
+
+  // Determine if we're in comparison mode (2+ items or showing compare tab)
+  const inCompareMode = comparisonList.length >= 2;
+
+  // Auto-expand for compare mode
+  const effectiveWidth = inCompareMode ? Math.max(panelWidth, 700) : panelWidth;
+
+  return (
+    <div
+      ref={panelRef}
+      className={`curriculum-panel ${curriculum || comparisonList.length > 0 ? 'visible' : ''} ${inCompareMode ? 'compare-mode' : ''} ${isResizing ? 'resizing' : ''}`}
+      style={{ width: `${effectiveWidth}px` }}
+    >
+      {/* Resize Handle */}
+      <div
+        className="panel-resize-handle"
+        onMouseDown={handleMouseDown}
+      >
+        <div className="resize-grip">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+
+      <div className="panel-content">
+        {/* Accent line */}
+        <div className="panel-accent" />
+
+        {/* Close button */}
+        <button className="panel-close" onClick={onClose}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+
+        {/* Comparison Tabs */}
+        {(comparisonList.length > 0 || isShowingExternalCurriculum) && (
+          <div className="comparison-tabs-container">
+            <div className="comparison-tabs">
+              {comparisonList.map((comp, index) => (
+                <button
+                  key={comp.id}
+                  className={`comparison-tab ${activeComparisonTab === index && !showClickedCurriculum ? 'active' : ''}`}
+                  onClick={() => handleTabClick(index)}
+                >
+                  <span className="tab-label">{comp.school.split(' ').slice(0, 2).join(' ')}</span>
+                  <button
+                    className="tab-remove"
+                    onClick={(e) => handleRemoveFromComparison(e, comp.id)}
+                    title="Remove from comparison"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </button>
+              ))}
+
+              {/* Show clicked curriculum tab if it's not in comparison */}
+              {isShowingExternalCurriculum && curriculum && (
+                <button
+                  className={`comparison-tab external-tab ${showClickedCurriculum ? 'active' : ''}`}
+                  onClick={() => handleTabClick(comparisonList.length + 1)}
+                >
+                  <span className="tab-label">{curriculum.school.split(' ').slice(0, 2).join(' ')}</span>
+                  <button
+                    className="tab-add"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addToComparison(curriculum);
+                    }}
+                    title="Add to comparison"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="12" y1="5" x2="12" y2="19"/>
+                      <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                  </button>
+                </button>
+              )}
+
+              {/* Compare Tab */}
+              {comparisonList.length >= 2 && (
+                <button
+                  className={`comparison-tab compare-tab ${isCompareTab ? 'active' : ''}`}
+                  onClick={() => handleTabClick(comparisonList.length)}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="7" height="7"/>
+                    <rect x="14" y="3" width="7" height="7"/>
+                    <rect x="3" y="14" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/>
+                  </svg>
+                  <span className="tab-label">Compare</span>
+                </button>
+              )}
+
+              {/* Add to Comparison Button */}
+              <div className="add-comparison-wrapper" ref={addMenuRef}>
+                <button
+                  className="add-comparison-btn"
+                  onClick={() => setShowAddMenu(!showAddMenu)}
+                  title="Add course to comparison"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                </button>
+
+                {/* Add Menu Dropdown */}
+                {showAddMenu && (
+                  <div className="add-menu-dropdown">
+                    <div className="add-menu-header">Add Course</div>
+                    <div className="add-menu-list">
+                      {availableCurriculums.slice(0, 10).map(c => (
+                        <button
+                          key={c.id}
+                          className="add-menu-item"
+                          onClick={() => handleAddToComparison(c)}
+                        >
+                          <span className="add-menu-school">{c.school}</span>
+                          <span className="add-menu-title">{c.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Compare View */}
+        {isCompareTab && comparisonList.length >= 2 ? (
+          <ComparisonView
+            curriculums={comparisonList}
+            removeFromComparison={removeFromComparison}
+          />
+        ) : displayCurriculum ? (
+          <>
+            {/* School info */}
+            <div className="panel-school">
+              <div className="school-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                  <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
+              </div>
+              <div className="school-info">
+                <div className="school-name">{displayCurriculum.school}</div>
+                <div className="school-location">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  <span>{displayCurriculum.location.city}, {displayCurriculum.location.country}</span>
+                </div>
+              </div>
+
+              {/* Add/Remove Comparison Button on School Card */}
+              {isShowingExternalCurriculum && (
+                <button
+                  className="school-comparison-btn add"
+                  onClick={() => addToComparison(displayCurriculum)}
+                  title="Add to comparison"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Title */}
+            <h2 className="panel-title">{displayCurriculum.title}</h2>
+
+            {/* Topics */}
+            <div className="panel-topics">
+              {displayCurriculum.topics.map((topic, i) => (
+                <span key={i} className="topic-chip">{topic}</span>
+              ))}
+            </div>
+
+            {/* Description */}
+            <p className="panel-description">{displayCurriculum.description}</p>
+
+            {/* Meta info */}
+            <div className="panel-meta">
+              <div className="meta-block">
+                <span className="meta-label">Instructor</span>
+                <span className="meta-value">{displayCurriculum.instructor}</span>
+              </div>
+              <div className="meta-block">
+                <span className="meta-label">Students</span>
+                <span className="meta-value">{displayCurriculum.students.toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Tags */}
+            <div className="panel-tags">
+              {displayCurriculum.tags.map((tag, i) => (
+                <span key={i} className="tag-pill">{tag}</span>
+              ))}
+            </div>
+
+            {/* Format */}
+            <div className="panel-format">
+              <span className="format-label">
+                {formatIcons[displayCurriculum.format]}
+                {formatLabels[displayCurriculum.format]}
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div className="panel-actions">
+              <button className="action-btn secondary">Preview</button>
+              <button
+                className="action-btn primary"
+                onClick={handleStart}
+                disabled={isStarting}
+              >
+                {isStarting ? (
+                  <>
+                    <div className="loading-spinner-small" style={{ width: '16px', height: '16px', marginRight: '8px' }}></div>
+                    Starting...
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    Start
+                  </>
+                )}
+              </button>
+              <button className="action-btn icon-only">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Research Section - Powered by Woodwide AI */}
+            <Research curriculum={displayCurriculum} />
+          </>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+export default CurriculumPopup;

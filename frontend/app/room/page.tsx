@@ -1,18 +1,47 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { VideoRoom } from '@/components/video-room';
 import { LearningPanel } from '@/components/learning-panel';
 import { AgentCommand } from '@/hooks/useAgentDataChannel';
 
 export default function RoomPage() {
+  const searchParams = useSearchParams();
+  const sessionId = searchParams?.get('session');
+
   const [joined, setJoined] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastCommand, setLastCommand] = useState<AgentCommand | null>(null);
+  const [curriculumContext, setCurriculumContext] = useState<any>(null);
 
   const wsUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || '';
+
+  // Auto-join if session ID is present (coming from nexhacksv0)
+  useEffect(() => {
+    if (sessionId && !joined && !isConnecting) {
+      console.log('[RoomPage] Auto-joining from nexhacksv0 session:', sessionId);
+      // Fetch session context from backend
+      fetchSessionContext(sessionId);
+      // Auto-join room
+      handleJoinRoom(sessionId);
+    }
+  }, [sessionId]);
+
+  const fetchSessionContext = async (sessionId: string) => {
+    try {
+      const response = await fetch(`http://localhost:8000/session/${sessionId}/graph`);
+      if (response.ok) {
+        const data = await response.json();
+        // In future, backend could return curriculum_context
+        console.log('[RoomPage] Session context:', data);
+      }
+    } catch (err) {
+      console.error('[RoomPage] Failed to fetch session context:', err);
+    }
+  };
 
   // Wrap in useCallback to prevent unnecessary re-renders and effect re-runs
   const handleCommandReceived = useCallback((command: AgentCommand) => {
@@ -20,19 +49,21 @@ export default function RoomPage() {
     setLastCommand(command);
   }, []);
 
-  const handleJoinRoom = async () => {
+  const handleJoinRoom = async (session?: string) => {
     setIsConnecting(true);
     setError(null);
 
     try {
+      const roomName = session ? `learning-room-${session}` : 'learning-room';
       const response = await fetch('/api/livekit/token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          roomName: 'learning-room',
+          roomName: roomName,
           participantName: 'Student',
+          sessionId: session || undefined,
         }),
       });
 
@@ -74,9 +105,14 @@ export default function RoomPage() {
                 </div>
               </div>
 
-              <h2 className="text-3xl font-bold text-white mb-4">Ready to Learn?</h2>
+              <h2 className="text-3xl font-bold text-white mb-4">
+                {sessionId ? 'Starting Your Session...' : 'Ready to Learn?'}
+              </h2>
               <p className="text-slate-300 mb-8 max-w-md mx-auto">
-                Join the video room to start your interactive learning session with AI-powered tutoring
+                {sessionId
+                  ? 'Connecting you to your personalized learning session'
+                  : 'Join the video room to start your interactive learning session with AI-powered tutoring'
+                }
               </p>
 
               <button

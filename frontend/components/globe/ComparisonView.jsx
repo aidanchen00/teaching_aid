@@ -1,0 +1,354 @@
+import { useState, useEffect } from 'react';
+import { ResearchService } from '@/services/research';
+import './ComparisonView.css';
+
+function ComparisonView({ curriculums, removeFromComparison }) {
+  const [researchData, setResearchData] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadAllResearchData();
+  }, [curriculums]);
+
+  const loadAllResearchData = async () => {
+    setLoading(true);
+    const newData = {};
+
+    await Promise.all(
+      curriculums.map(async (curriculum) => {
+        try {
+          const data = await ResearchService.analyzeCurriculum(
+            curriculum,
+            curriculum.location.city,
+            curriculum.location.country
+          );
+          newData[curriculum.id] = data;
+        } catch (err) {
+          console.error(`Failed to load research for ${curriculum.title}:`, err);
+          newData[curriculum.id] = null;
+        }
+      })
+    );
+
+    setResearchData(newData);
+    setLoading(false);
+  };
+
+  const formatLabels = {
+    'visual-heavy': 'Visual Learning',
+    'theory-heavy': 'Theory-Based',
+    'project-based': 'Project-Based'
+  };
+
+  // Get the best value for highlighting
+  const getBestValue = (values, higherIsBetter = true) => {
+    const validValues = values.filter(v => v !== null && v !== undefined && !isNaN(v) && isFinite(v));
+    if (validValues.length === 0) return null;
+    if (higherIsBetter) {
+      return Math.max(...validValues);
+    }
+    return Math.min(...validValues);
+  };
+
+  // Safe number formatter
+  const formatValue = (value, decimals = 0) => {
+    if (value === null || value === undefined || isNaN(value) || !isFinite(value)) {
+      return null;
+    }
+    return Number(value).toFixed(decimals);
+  };
+
+  // Render a comparison metric row
+  const renderMetricRow = (label, getValue, unit = '', higherIsBetter = true) => {
+    const values = curriculums.map(c => {
+      const data = researchData[c.id];
+      const rawValue = getValue(c, data);
+      // Ensure valid number
+      if (rawValue === null || rawValue === undefined || isNaN(rawValue) || !isFinite(rawValue)) {
+        return null;
+      }
+      return Number(rawValue);
+    });
+    const bestValue = getBestValue(values, higherIsBetter);
+
+    return (
+      <div className="comparison-row">
+        <div className="comparison-label">{label}</div>
+        {curriculums.map((c, index) => {
+          const value = values[index];
+          const isBest = value !== null && bestValue !== null && value === bestValue;
+          return (
+            <div key={c.id} className={`comparison-value ${isBest ? 'best' : ''}`}>
+              {value !== null ? (
+                <>
+                  <span className="value-number">{value.toFixed(0)}</span>
+                  {unit && <span className="value-unit">{unit}</span>}
+                  {isBest && <span className="best-badge">Best</span>}
+                </>
+              ) : (
+                <span className="value-na">N/A</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="comparison-view">
+        <h3 className="comparison-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+          </svg>
+          Course Comparison
+        </h3>
+        <div className="comparison-loading">
+          <div className="loading-spinner-small"></div>
+          <span>Loading comparison data...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // CSS variable for grid columns
+  const gridStyle = { '--comparison-count': curriculums.length };
+
+  return (
+    <div className="comparison-view" style={gridStyle}>
+      <h3 className="comparison-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="3" width="7" height="7"/>
+          <rect x="14" y="3" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/>
+        </svg>
+        Course Comparison
+        <span className="comparison-count">{curriculums.length} courses</span>
+      </h3>
+
+      {/* School Headers */}
+      <div className="comparison-header-row">
+        <div className="comparison-label"></div>
+        {curriculums.map(c => (
+          <div key={c.id} className="comparison-school-header">
+            <div className="school-header-name">{c.school}</div>
+            <div className="school-header-location">{c.location.city}</div>
+            <button
+              className="school-header-remove"
+              onClick={() => removeFromComparison(c.id)}
+              title="Remove from comparison"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Course Titles */}
+      <div className="comparison-row title-row">
+        <div className="comparison-label">Course</div>
+        {curriculums.map(c => (
+          <div key={c.id} className="comparison-value course-title">
+            {c.title}
+          </div>
+        ))}
+      </div>
+
+      {/* Section: Basic Info */}
+      <div className="comparison-section">
+        <div className="comparison-section-title">Basic Information</div>
+
+        <div className="comparison-row">
+          <div className="comparison-label">Format</div>
+          {curriculums.map(c => (
+            <div key={c.id} className="comparison-value format-value">
+              {formatLabels[c.format] || c.format}
+            </div>
+          ))}
+        </div>
+
+        {renderMetricRow(
+          'Students',
+          (c) => c.students,
+          '',
+          true
+        )}
+
+        <div className="comparison-row">
+          <div className="comparison-label">Topics</div>
+          {curriculums.map(c => (
+            <div key={c.id} className="comparison-value topics-value">
+              {c.topics.slice(0, 3).join(', ')}
+              {c.topics.length > 3 && ` +${c.topics.length - 3}`}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Section: Quality Metrics */}
+      <div className="comparison-section">
+        <div className="comparison-section-title">Quality Metrics</div>
+
+        {renderMetricRow(
+          'Quality Score',
+          (c, data) => data?.curriculum_quality_score,
+          '/100',
+          true
+        )}
+
+        {renderMetricRow(
+          'Topic Diversity',
+          (c, data) => data?.curriculum_metrics?.metrics?.topic_diversity,
+          '%',
+          true
+        )}
+
+        {renderMetricRow(
+          'Industry Relevance',
+          (c, data) => data?.curriculum_metrics?.metrics?.industry_relevance_score,
+          '%',
+          true
+        )}
+
+        {renderMetricRow(
+          'Format Score',
+          (c, data) => data?.curriculum_metrics?.metrics?.format_score,
+          '/100',
+          true
+        )}
+
+        {renderMetricRow(
+          'Predicted Completion',
+          (c, data) => data?.completion_forecast?.predicted_completion_rate,
+          '%',
+          true
+        )}
+      </div>
+
+      {/* Section: Career Outcomes */}
+      <div className="comparison-section">
+        <div className="comparison-section-title">Career Outcomes</div>
+
+        {renderMetricRow(
+          'Employment Rate',
+          (c) => c.outcomes ? Math.round(c.outcomes.employmentRate * 100) : null,
+          '%',
+          true
+        )}
+
+        {renderMetricRow(
+          'Avg Salary',
+          (c) => c.outcomes?.averageSalary ? Math.round(c.outcomes.averageSalary / 1000) : null,
+          'k',
+          true
+        )}
+
+        {renderMetricRow(
+          'Placement Time',
+          (c) => c.outcomes?.jobPlacementTimeframe,
+          ' mo',
+          false // Lower is better
+        )}
+
+        {renderMetricRow(
+          'Graduation Rate',
+          (c) => c.completion ? Math.round(c.completion.graduationRate * 100) : null,
+          '%',
+          true
+        )}
+      </div>
+
+      {/* Section: Alumni */}
+      <div className="comparison-section">
+        <div className="comparison-section-title">Alumni Feedback</div>
+
+        {renderMetricRow(
+          'Satisfaction',
+          (c) => c.alumni?.satisfactionScore,
+          '/10',
+          true
+        )}
+
+        {renderMetricRow(
+          'Would Recommend',
+          (c) => c.alumni ? Math.round(c.alumni.wouldRecommend * 100) : null,
+          '%',
+          true
+        )}
+
+        {renderMetricRow(
+          'Total Alumni',
+          (c) => c.alumni?.totalAlumni ? Math.round(c.alumni.totalAlumni / 1000) : null,
+          'k',
+          true
+        )}
+      </div>
+
+      {/* Top Employers Comparison */}
+      <div className="comparison-section">
+        <div className="comparison-section-title">Top Employers</div>
+        <div className="comparison-row">
+          <div className="comparison-label"></div>
+          {curriculums.map(c => (
+            <div key={c.id} className="comparison-value employers-list">
+              {c.outcomes?.topEmployers?.slice(0, 4).map((emp, i) => (
+                <span key={i} className="employer-chip-small">{emp}</span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Summary Card */}
+      <div className="comparison-summary">
+        <div className="summary-title">Quick Summary</div>
+        <div className="summary-grid">
+          {curriculums.map(c => {
+            const data = researchData[c.id];
+            const rawQuality = data?.curriculum_quality_score;
+            const qualityScore = (rawQuality !== null && rawQuality !== undefined && !isNaN(rawQuality) && isFinite(rawQuality))
+              ? Number(rawQuality).toFixed(0) : 'N/A';
+
+            const rawEmployment = c.outcomes?.employmentRate;
+            const employmentRate = (rawEmployment !== null && rawEmployment !== undefined && !isNaN(rawEmployment) && isFinite(rawEmployment))
+              ? Math.round(rawEmployment * 100) : 'N/A';
+
+            const rawSalary = c.outcomes?.averageSalary;
+            const salary = (rawSalary !== null && rawSalary !== undefined && !isNaN(rawSalary) && isFinite(rawSalary) && rawSalary > 0)
+              ? `$${Math.round(rawSalary / 1000)}k` : 'N/A';
+
+            return (
+              <div key={c.id} className="summary-card">
+                <div className="summary-school">{c.school.split(' ').slice(0, 2).join(' ')}</div>
+                <div className="summary-stats">
+                  <div className="summary-stat">
+                    <span className="stat-value">{qualityScore}</span>
+                    <span className="stat-label">Quality</span>
+                  </div>
+                  <div className="summary-stat">
+                    <span className="stat-value">{employmentRate}{employmentRate !== 'N/A' ? '%' : ''}</span>
+                    <span className="stat-label">Employment</span>
+                  </div>
+                  <div className="summary-stat">
+                    <span className="stat-value">{salary}</span>
+                    <span className="stat-label">Salary</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ComparisonView;

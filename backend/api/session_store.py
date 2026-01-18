@@ -22,6 +22,7 @@ class Session:
     center_id: str
     nodes: List[GraphNode] = field(default_factory=list)
     links: List[GraphLink] = field(default_factory=list)
+    curriculum_context: Optional[Dict] = None  # Context from nexhacksv0
 
 # In-memory store
 sessions: Dict[str, Session] = {}
@@ -39,8 +40,8 @@ INITIAL_LINKS: List[GraphLink] = []
 # Default center is the first node
 DEFAULT_CENTER_ID = "threejs"
 
-def create_session(initial_center_id: str = None) -> Session:
-    """Create a new session with the 3 initial nodes."""
+def create_session(initial_center_id: str = None, curriculum_context: Optional[Dict] = None) -> Session:
+    """Create a new session with the 3 initial nodes and optional curriculum context."""
     session_id = str(uuid.uuid4())
 
     # Use the 3 predefined nodes
@@ -52,10 +53,12 @@ def create_session(initial_center_id: str = None) -> Session:
         session_id=session_id,
         center_id=center_id,
         nodes=nodes,
-        links=links
+        links=links,
+        curriculum_context=curriculum_context
     )
 
     sessions[session_id] = session
+    print(f"[SESSION] Created session {session_id} with curriculum: {curriculum_context.get('title') if curriculum_context else 'None'}")
     return session
 
 def get_session(session_id: str) -> Optional[Session]:

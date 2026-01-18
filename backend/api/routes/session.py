@@ -10,6 +10,9 @@ from api.session_store import (
 
 router = APIRouter()
 
+class CreateSessionRequest(BaseModel):
+    curriculum: Optional[Dict[str, Any]] = None
+
 class CreateSessionResponse(BaseModel):
     sessionId: str
 
@@ -27,14 +30,18 @@ class GraphResponse(BaseModel):
     links: List[Dict[str, str]]
 
 @router.post("/create")
-async def create_new_session() -> CreateSessionResponse:
+async def create_new_session(request: Optional[CreateSessionRequest] = None) -> CreateSessionResponse:
     """
-    Create a new learning session with initial 3 nodes.
+    Create a new learning session with initial 3 nodes and optional curriculum context.
+
+    Args:
+        request: Optional curriculum context from nexhacksv0
 
     Returns:
         { "sessionId": "uuid" }
     """
-    session = create_session()
+    curriculum_context = request.curriculum if request else None
+    session = create_session(curriculum_context=curriculum_context)
     print(f"[API] POST /session/create -> {session.session_id}")
 
     return CreateSessionResponse(sessionId=session.session_id)

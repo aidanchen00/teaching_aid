@@ -17,10 +17,25 @@ out/
 dist/
 .cache/
 
-# Environment variables
+# Environment variables - CRITICAL: Never commit API keys!
 .env
 .env.local
 .env.*.local
+.env.development
+.env.production
+.env.test
+*.env
+**/**.env
+**/.env*
+# Specific paths
+frontend/.env
+frontend/.env.local
+frontend/.env.development
+frontend/.env.production
+backend/.env
+backend/.env.local
+nexhacksv0/.env
+nexhacksv0/.env.local
 
 # IDE
 .vscode/

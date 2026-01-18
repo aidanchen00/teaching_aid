@@ -1,0 +1,545 @@
+.research-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  padding-bottom: 40px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.research-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #f3f4f6;
+  margin-bottom: 20px;
+}
+
+.research-title svg {
+  width: 20px;
+  height: 20px;
+  color: #4f46e5;
+}
+
+.woodwide-badge {
+  margin-left: auto;
+  padding: 4px 8px;
+  background: rgba(79, 70, 229, 0.2);
+  border: 1px solid rgba(79, 70, 229, 0.4);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  color: #818cf8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.research-loading,
+.research-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.loading-spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(79, 70, 229, 0.3);
+  border-top-color: #4f46e5;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.research-load-btn {
+  width: 100%;
+  padding: 12px;
+  background: rgba(79, 70, 229, 0.1);
+  border: 1px solid rgba(79, 70, 229, 0.3);
+  border-radius: 8px;
+  color: #818cf8;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.research-load-btn:hover {
+  background: rgba(79, 70, 229, 0.2);
+  border-color: rgba(79, 70, 229, 0.5);
+}
+
+.research-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.metric-card {
+  background: rgba(31, 41, 55, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.metric-label {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.confidence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: #818cf8;
+  background: rgba(79, 70, 229, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.metric-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #f3f4f6;
+}
+
+.metric-subtext {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.rigor-index-card {
+  background: rgba(31, 41, 55, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.rigor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.rigor-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f3f4f6;
+}
+
+.rigor-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #4f46e5;
+  margin-bottom: 8px;
+}
+
+.rigor-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.rigor-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4f46e5, #818cf8);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.rigor-description {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.anomaly-card {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  background: rgba(79, 70, 229, 0.1);
+  border: 1px solid rgba(79, 70, 229, 0.3);
+}
+
+.anomaly-card.oasis {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.anomaly-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.anomaly-content {
+  flex: 1;
+}
+
+.anomaly-content h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f3f4f6;
+  margin: 0 0 8px 0;
+}
+
+.anomaly-content p {
+  font-size: 13px;
+  color: #d1d5db;
+  margin: 0 0 8px 0;
+  line-height: 1.5;
+}
+
+.anomaly-stats {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.trajectory-card {
+  background: rgba(31, 41, 55, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.trajectory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.trajectory-header h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f3f4f6;
+  margin: 0;
+}
+
+.trajectory-description {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 0 0 16px 0;
+}
+
+.model-metadata {
+  text-align: center;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.metadata-text {
+  font-size: 10px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.quality-indicators-card {
+  background: rgba(31, 41, 55, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.quality-indicators-card h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f3f4f6;
+  margin: 0 0 12px 0;
+}
+
+.indicators-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.indicator-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #d1d5db;
+}
+
+.indicator-item.positive {
+  color: #10b981;
+}
+
+.indicator-icon {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.outcomes-card {
+  background: rgba(31, 41, 55, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.outcomes-card h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f3f4f6;
+  margin: 0 0 12px 0;
+}
+
+.outcomes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.outcome-item {
+  padding: 10px;
+  background: rgba(0, 255, 200, 0.05);
+  border: 1px solid rgba(0, 255, 200, 0.1);
+  border-radius: 6px;
+}
+
+.outcome-skill {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(0, 255, 200, 0.9);
+  margin-bottom: 4px;
+}
+
+.outcome-details {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.outcome-level {
+  text-transform: capitalize;
+  color: #818cf8;
+}
+
+.outcome-time {
+  color: #6b7280;
+}
+
+/* Career Outcomes Card */
+.career-outcomes-card,
+.employers-card,
+.industry-card,
+.completion-card,
+.skills-card,
+.career-paths-card,
+.alumni-feedback-card {
+  background: rgba(31, 41, 55, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.career-outcomes-card h4,
+.employers-card h4,
+.industry-card h4,
+.completion-card h4,
+.skills-card h4,
+.career-paths-card h4,
+.alumni-feedback-card h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f3f4f6;
+  margin: 0 0 12px 0;
+}
+
+/* Outcomes Metrics Grid */
+.outcomes-metrics-grid,
+.completion-metrics-grid,
+.alumni-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.outcome-metric,
+.completion-metric,
+.alumni-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  background: rgba(79, 70, 229, 0.1);
+  border-radius: 6px;
+}
+
+.outcome-metric-value,
+.completion-metric-value,
+.alumni-metric-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #818cf8;
+}
+
+.outcome-metric-label,
+.completion-metric-label,
+.alumni-metric-label {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 4px;
+  text-align: center;
+}
+
+/* Employers Chips */
+.employers-chips,
+.skills-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.employer-chip {
+  padding: 6px 12px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 16px;
+  font-size: 12px;
+  color: #10b981;
+  font-weight: 500;
+}
+
+.skill-chip {
+  padding: 6px 12px;
+  background: rgba(79, 70, 229, 0.15);
+  border: 1px solid rgba(79, 70, 229, 0.3);
+  border-radius: 16px;
+  font-size: 12px;
+  color: #818cf8;
+  font-weight: 500;
+}
+
+/* Industry Distribution Bars */
+.industry-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.industry-bar-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 40px;
+  align-items: center;
+  gap: 8px;
+}
+
+.industry-name {
+  font-size: 11px;
+  color: #d1d5db;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.industry-bar-container {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.industry-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4f46e5, #818cf8);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.industry-percentage {
+  font-size: 11px;
+  color: #9ca3af;
+  text-align: right;
+}
+
+/* Career Paths List */
+.career-paths-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.career-path-row {
+  display: grid;
+  grid-template-columns: 1fr 50px 60px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.15);
+  border-radius: 6px;
+}
+
+.career-path-title {
+  font-size: 13px;
+  color: #fbbf24;
+  font-weight: 500;
+}
+
+.career-path-percentage {
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.career-path-salary {
+  font-size: 12px;
+  color: #10b981;
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .research-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .outcomes-metrics-grid,
+  .alumni-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .industry-bar-row {
+    grid-template-columns: 80px 1fr 35px;
+  }
+
+  .career-path-row {
+    grid-template-columns: 1fr 45px 55px;
+  }
+}
+
